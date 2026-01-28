@@ -210,7 +210,7 @@ export default function RegisterPage() {
             kvkk_approved: formData.kvkkApproved,
             sms_email_consent: formData.smsEmailConsent,
           },
-          emailRedirectTo: undefined,
+          emailRedirectTo: 'https://point.iksoft.com.tr/auth/login',
         },
       });
 
