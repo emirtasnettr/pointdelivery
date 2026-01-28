@@ -680,8 +680,9 @@ export default function MiddlemanCandidateDetailPage() {
                   );
                   
                   const getStatusColor = (status: string | null | undefined) => {
-                    if (!status || status === null) {
-                      return 'bg-gray-50 text-gray-700 border-gray-200';
+                    // status null ise belge yüklenmiş ama henüz incelenmemiş demektir
+                    if (status === null || status === undefined) {
+                      return 'bg-yellow-50 text-yellow-700 border-yellow-200';
                     }
                     switch (status) {
                       case 'APPROVED':
@@ -694,8 +695,9 @@ export default function MiddlemanCandidateDetailPage() {
                   };
 
                   const getCardBackgroundColor = (status: string | null | undefined) => {
-                    if (!status || status === null) {
-                      return 'bg-gray-100/40 border-gray-300';
+                    // status null ise belge yüklenmiş ama henüz incelenmemiş demektir
+                    if (status === null || status === undefined) {
+                      return 'bg-yellow-100/50 border-yellow-300/70';
                     }
                     switch (status) {
                       case 'APPROVED':
@@ -708,8 +710,9 @@ export default function MiddlemanCandidateDetailPage() {
                   };
 
                   const getStatusText = (status: string | null | undefined) => {
-                    if (!status || status === null) {
-                      return 'Yok';
+                    // status null ise belge yüklenmiş ama henüz incelenmemiş demektir
+                    if (status === null || status === undefined) {
+                      return 'Beklemede';
                     }
                     switch (status) {
                       case 'APPROVED':
@@ -722,8 +725,13 @@ export default function MiddlemanCandidateDetailPage() {
                   };
 
                   const getStatusIcon = (status: string | null | undefined) => {
-                    if (!status || status === null) {
-                      return null;
+                    // status null ise belge yüklenmiş ama henüz incelenmemiş demektir
+                    if (status === null || status === undefined) {
+                      return (
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                      );
                     }
                     switch (status) {
                       case 'APPROVED':
