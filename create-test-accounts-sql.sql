@@ -1,0 +1,43 @@
+-- =====================================================
+-- TEST HESAPLARI OLUŞTURMA (GELİŞMİŞ YÖNTEM)
+-- =====================================================
+-- Bu script, kullanıcıları direkt SQL ile oluşturur
+-- ⚠️ NOT: Bu yöntem şifre hash'leme gerektirir ve karmaşıktır
+-- 
+-- ÖNERİLEN: update-test-accounts.sql kullanın (daha kolay)
+-- =====================================================
+
+-- Bu yöntem karmaşık olduğu için, aşağıdaki adımları izleyin:
+
+-- 1. Supabase Dashboard > Authentication > Users > Add user
+--    ile kullanıcıları oluşturun
+-- 
+-- 2. update-test-accounts.sql script'ini çalıştırarak
+--    rollerini güncelleyin
+
+-- =====================================================
+-- ALTERNATIF: Supabase Management API kullanımı
+-- =====================================================
+-- Eğer programatik olarak oluşturmak isterseniz, 
+-- Supabase Management API'sini kullanabilirsiniz:
+-- 
+-- POST https://{project-ref}.supabase.co/auth/v1/admin/users
+-- Headers: {
+--   "Authorization": "Bearer {service-role-key}",
+--   "Content-Type": "application/json"
+-- }
+-- Body: {
+--   "email": "consultant@test.com",
+--   "password": "consultant123",
+--   "email_confirm": true,
+--   "user_metadata": {
+--     "full_name": "Test Consultant",
+--     "role": "CONSULTANT"
+--   }
+-- }
+-- 
+-- Sonra update-test-accounts.sql ile rolü güncelleyin.
+-- =====================================================
+
+-- Bu dosya sadece referans içindir.
+-- update-test-accounts.sql dosyasını kullanın!
