@@ -54,12 +54,11 @@ export async function submitApplicationForEvaluation(profileId: string) {
       national_id: candidateInfo.national_id,
       date_of_birth: candidateInfo.date_of_birth,
       address: candidateInfo.address,
-      education_level: candidateInfo.education_level,
     };
 
     for (const [field, value] of Object.entries(requiredFields)) {
       if (!value || value === '') {
-        return { error: `Lütfen ${field === 'phone' ? 'telefon numarası' : field === 'national_id' ? 'TC Kimlik No' : field === 'date_of_birth' ? 'doğum tarihi' : field === 'address' ? 'adres' : 'eğitim seviyesi'} bilgisini girin` };
+        return { error: `Lütfen ${field === 'phone' ? 'telefon numarası' : field === 'national_id' ? 'TC Kimlik No' : field === 'date_of_birth' ? 'doğum tarihi' : 'adres'} bilgisini girin` };
       }
     }
 
@@ -70,12 +69,37 @@ export async function submitApplicationForEvaluation(profileId: string) {
       .eq('profile_id', profileId);
 
     const typedDocuments = (documents || []) as Document[];
-    const requiredDocumentTypes = ['KIMLIK', 'RESIDENCE', 'POLICE', 'CV'];
+    
+    // Kayıt sırasında girilen bilgileri user_metadata'dan al
+    const userMetadata = user.user_metadata || {};
+    const hasP1 = userMetadata.has_p1 === true;
+    const hasCompany = userMetadata.has_company === true;
+    
+    // Dinamik olarak zorunlu belge tiplerini oluştur
+    const requiredDocumentTypes: string[] = [
+      'EHLIYET',
+      'RUHSAT',
+      ...(hasP1 ? ['P1_BELGESI'] : []),
+      ...(hasCompany ? ['VERGI_LEVHASI'] : []),
+    ];
+    
     const uploadedDocumentTypes = typedDocuments.map((doc) => doc.document_type);
+
+    const docLabels: Record<string, string> = {
+      P1_BELGESI: 'P1 Belgesi',
+      EHLIYET: 'Ehliyet',
+      RUHSAT: 'Ruhsat',
+      VERGI_LEVHASI: 'Vergi Levhası',
+      KIMLIK: 'Kimlik Belgesi',
+      RESIDENCE: 'İkametgah',
+      POLICE: 'Sabıka Kaydı',
+      CV: 'CV',
+      DIPLOMA: 'Diploma',
+    };
 
     for (const docType of requiredDocumentTypes) {
       if (!uploadedDocumentTypes.includes(docType)) {
-        return { error: `Lütfen ${docType === 'KIMLIK' ? 'Kimlik Belgesi' : docType === 'RESIDENCE' ? 'İkametgah' : docType === 'POLICE' ? 'Sabıka Kaydı' : 'CV'} belgesini yükleyin` };
+        return { error: `Lütfen ${docLabels[docType] || docType} belgesini yükleyin` };
       }
     }
 

@@ -11,6 +11,7 @@ import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import Link from 'next/link';
 import SubmitApplicationButton from '@/components/submit-application-button';
+import Footer from '@/components/footer';
 
 export default function CandidateProfilePage() {
   const router = useRouter();
@@ -21,12 +22,23 @@ export default function CandidateProfilePage() {
   const [candidateInfo, setCandidateInfo] = useState<any>(null);
   const [documents, setDocuments] = useState<any[]>([]);
   const [siteLogo, setSiteLogo] = useState<string | null>(null);
+  const [vehicleInfo, setVehicleInfo] = useState<{
+    vehicle_type: string | null;
+    vehicle_subtype: string | null;
+    has_company: boolean | null;
+    has_p1: boolean | null;
+  }>({
+    vehicle_type: null,
+    vehicle_subtype: null,
+    has_company: null,
+    has_p1: null,
+  });
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const [showWarningModal, setShowWarningModal] = useState(false);
   const [isApproved, setIsApproved] = useState(false);
   const [uploadModalOpen, setUploadModalOpen] = useState(false);
-  const [selectedDocumentType, setSelectedDocumentType] = useState<'CV' | 'POLICE' | 'RESIDENCE' | 'KIMLIK' | 'DIPLOMA' | null>(null);
+  const [selectedDocumentType, setSelectedDocumentType] = useState<'P1_BELGESI' | 'EHLIYET' | 'RUHSAT' | 'VERGI_LEVHASI' | null>(null);
   const [selectedDocumentId, setSelectedDocumentId] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
@@ -45,13 +57,6 @@ export default function CandidateProfilePage() {
     address: '',
     dateOfBirth: '',
     nationalId: '',
-    educationLevel: '',
-    experienceYears: '0',
-    skills: [] as string[],
-    languages: [] as Array<{ name: string; level: string }>,
-    currentSkill: '',
-    currentLanguageName: '',
-    currentLanguageLevel: '',
   });
 
   const loadData = useCallback(async () => {
@@ -80,12 +85,48 @@ export default function CandidateProfilePage() {
 
       setProfile(profileData);
 
+      // Kayıt sırasında girilen araç ve şirket bilgilerini user_metadata'dan al
+      const { data: authUser } = await supabase.auth.getUser();
+      const userMetadata = authUser?.user?.user_metadata || {};
+      setVehicleInfo({
+        vehicle_type: userMetadata.vehicle_type || null,
+        vehicle_subtype: userMetadata.vehicle_subtype || null,
+        has_company: userMetadata.has_company ?? null,
+        has_p1: userMetadata.has_p1 ?? null,
+      });
+
       // Aday bilgilerini al
-      const { data: candidateInfoData } = await supabase
+      let candidateInfoData = null;
+      const { data: infoData, error: candidateInfoError } = await supabase
         .from('candidate_info')
         .select('*')
         .eq('profile_id', user.id)
-        .single();
+        .maybeSingle();
+
+      candidateInfoData = infoData;
+
+      // Eğer candidate_info kaydı yoksa, kayıt sırasında girilen bilgilerle oluştur
+      if (!candidateInfoData && !candidateInfoError) {
+        // Kayıt sırasında girilen bilgileri user_metadata'dan al
+        const { data: authUser } = await supabase.auth.getUser();
+        const userMetadata = authUser?.user?.user_metadata || {};
+        
+        const newCandidateInfo = {
+          profile_id: user.id,
+          phone: userMetadata.phone || null,
+          email: authUser?.user?.email || null,
+          city: userMetadata.city || null,
+          district: userMetadata.district || null,
+        };
+
+        const { data: createdInfo } = await supabase
+          .from('candidate_info')
+          .insert(newCandidateInfo)
+          .select()
+          .single();
+        
+        candidateInfoData = createdInfo || newCandidateInfo;
+      }
 
       setCandidateInfo(candidateInfoData);
 
@@ -99,13 +140,6 @@ export default function CandidateProfilePage() {
         address: candidateInfoData?.address || '',
         dateOfBirth: candidateInfoData?.date_of_birth || '',
         nationalId: candidateInfoData?.national_id || '',
-        educationLevel: candidateInfoData?.education_level || '',
-        experienceYears: candidateInfoData?.experience_years?.toString() || '0',
-        skills: candidateInfoData?.skills || [],
-        languages: candidateInfoData?.languages || [],
-        currentSkill: '',
-        currentLanguageName: '',
-        currentLanguageLevel: '',
       });
 
       // Onay durumunu kontrol et
@@ -118,8 +152,7 @@ export default function CandidateProfilePage() {
         candidateInfoData.district && 
         candidateInfoData.address && 
         candidateInfoData.date_of_birth && 
-        candidateInfoData.national_id && 
-        candidateInfoData.education_level &&
+        candidateInfoData.national_id &&
         profileData.full_name;
 
       setIsApproved(approved && !!infoLocked);
@@ -194,46 +227,6 @@ export default function CandidateProfilePage() {
     }));
   };
 
-  const addSkill = () => {
-    if (formData.currentSkill.trim() && !formData.skills.includes(formData.currentSkill.trim())) {
-      setFormData((prev) => ({
-        ...prev,
-        skills: [...prev.skills, prev.currentSkill.trim()],
-        currentSkill: '',
-      }));
-    }
-  };
-
-  const removeSkill = (skill: string) => {
-    setFormData((prev) => ({
-      ...prev,
-      skills: prev.skills.filter((s) => s !== skill),
-    }));
-  };
-
-  const addLanguage = () => {
-    if (formData.currentLanguageName.trim() && formData.currentLanguageLevel) {
-      const newLang = {
-        name: formData.currentLanguageName.trim(),
-        level: formData.currentLanguageLevel,
-      };
-      if (!formData.languages.some(l => l.name === newLang.name)) {
-        setFormData((prev) => ({
-          ...prev,
-          languages: [...prev.languages, newLang],
-          currentLanguageName: '',
-          currentLanguageLevel: '',
-        }));
-      }
-    }
-  };
-
-  const removeLanguage = (name: string) => {
-    setFormData((prev) => ({
-      ...prev,
-      languages: prev.languages.filter((l) => l.name !== name),
-    }));
-  };
 
   const handleSave = async () => {
     setSaving(true);
@@ -273,10 +266,6 @@ export default function CandidateProfilePage() {
           address: formData.address || null,
           date_of_birth: formData.dateOfBirth || null,
           national_id: formData.nationalId || null,
-          education_level: formData.educationLevel || null,
-          experience_years: parseInt(formData.experienceYears) || 0,
-          skills: formData.skills,
-          languages: formData.languages,
         }, { onConflict: 'profile_id' });
 
       if (candidateError) throw candidateError;
@@ -550,13 +539,6 @@ export default function CandidateProfilePage() {
                         address: candidateInfo?.address || '',
                         dateOfBirth: candidateInfo?.date_of_birth || '',
                         nationalId: candidateInfo?.national_id || '',
-                        educationLevel: candidateInfo?.education_level || '',
-                        experienceYears: candidateInfo?.experience_years?.toString() || '0',
-                        skills: candidateInfo?.skills || [],
-                        languages: candidateInfo?.languages || [],
-                        currentSkill: '',
-                        currentLanguageName: '',
-                        currentLanguageLevel: '',
                       });
                       setSaveError(null);
                       setSaveSuccess(false);
@@ -597,322 +579,361 @@ export default function CandidateProfilePage() {
         </div>
 
         {/* Profile Information Card */}
-        <div className="bg-white rounded-2xl shadow-lg p-6 md:p-8">
-          <div className="space-y-6">
-            {/* Temel Bilgiler */}
-            <div>
-              <h3 className="text-lg font-semibold text-gray-900 mb-4 pb-2 border-b border-gray-200">
-                Temel Bilgiler
-              </h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                  <p className="text-xs font-medium text-gray-500 mb-1">Ad Soyad</p>
-                  {isEditing ? (
-                    <input
-                      type="text"
-                      name="fullName"
-                      value={formData.fullName}
-                      onChange={handleChange}
-                      className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      required
-                    />
-                  ) : (
-                    <p className="text-sm text-gray-900 font-medium">{profile?.full_name || '-'}</p>
-                  )}
-                </div>
-                <div>
-                  <p className="text-xs font-medium text-gray-500 mb-1">Doğum Tarihi</p>
-                  {isEditing ? (
-                    <input
-                      type="date"
-                      name="dateOfBirth"
-                      value={formData.dateOfBirth}
-                      onChange={handleChange}
-                      className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    />
-                  ) : (
-                    <p className="text-sm text-gray-900">
-                      {birthDay && birthMonth && birthYear
-                        ? `${birthDay}/${birthMonth}/${birthYear}`
-                        : '-'}
-                    </p>
-                  )}
-                </div>
-                <div>
-                  <p className="text-xs font-medium text-gray-500 mb-1">TC Kimlik No</p>
-                  {isEditing ? (
-                    <input
-                      type="text"
-                      name="nationalId"
-                      value={formData.nationalId}
-                      onChange={handleChange}
-                      maxLength={11}
-                      className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    />
-                  ) : (
-                    <p className="text-sm text-gray-900">{candidateInfo?.national_id || '-'}</p>
-                  )}
-                </div>
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4 md:p-6">
+          <h3 className="text-base font-semibold text-gray-900 mb-4 pb-2 border-b border-gray-200">Kişisel Bilgiler</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-5">
+            {/* Ad Soyad */}
+            <div className="flex items-start gap-3 p-3 rounded-lg bg-gray-50/50 hover:bg-gray-50 transition-colors">
+              <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${profile?.full_name ? 'bg-[#16B24B]' : 'bg-red-100'}`}>
+                <svg className={`w-4 h-4 ${profile?.full_name ? 'text-white' : 'text-red-600'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                </svg>
               </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-xs font-medium text-gray-500 mb-0.5">Ad Soyad</p>
+                {isEditing ? (
+                  <input
+                    type="text"
+                    name="fullName"
+                    value={formData.fullName}
+                    onChange={handleChange}
+                    className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    required
+                  />
+                ) : (
+                  <p className="text-sm font-medium truncate">{profile?.full_name ? <span className="text-gray-900">{profile.full_name}</span> : <span className="text-red-600 font-bold">Eksik bilgi</span>}</p>
+                )}
+              </div>
+              {!isEditing && !profile?.full_name && (
+                <button
+                  onClick={() => setIsEditing(true)}
+                  className="flex-shrink-0 p-1.5 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                  title="Düzenle"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                  </svg>
+                </button>
+              )}
             </div>
 
-            {/* İletişim Bilgileri */}
-            <div>
-              <h3 className="text-lg font-semibold text-gray-900 mb-4 pb-2 border-b border-gray-200">
-                İletişim Bilgileri
-              </h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                  <p className="text-xs font-medium text-gray-500 mb-1">Telefon</p>
-                  {isEditing ? (
-                    <input
-                      type="tel"
-                      name="phone"
-                      value={formData.phone}
-                      onChange={handleChange}
-                      className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    />
-                  ) : (
-                    <p className="text-sm text-gray-900">{candidateInfo?.phone || '-'}</p>
-                  )}
+            {/* Doğum Tarihi */}
+            <div className="flex items-start gap-3 p-3 rounded-lg bg-gray-50/50 hover:bg-gray-50 transition-colors">
+              <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${birthDay && birthMonth && birthYear ? 'bg-[#16B24B]' : 'bg-red-100'}`}>
+                <svg className={`w-4 h-4 ${birthDay && birthMonth && birthYear ? 'text-white' : 'text-red-600'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                </svg>
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-xs font-medium text-gray-500 mb-0.5">Doğum Tarihi</p>
+                {isEditing ? (
+                  <input
+                    type="date"
+                    name="dateOfBirth"
+                    value={formData.dateOfBirth}
+                    onChange={handleChange}
+                    className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  />
+                ) : (
+                  <p className="text-sm">
+                    {birthDay && birthMonth && birthYear ? <span className="text-gray-900">{`${birthDay}/${birthMonth}/${birthYear}`}</span> : <span className="text-red-600 font-bold">Eksik bilgi</span>}
+                  </p>
+                )}
+              </div>
+              {!isEditing && !(birthDay && birthMonth && birthYear) && (
+                <button
+                  onClick={() => setIsEditing(true)}
+                  className="flex-shrink-0 p-1.5 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                  title="Düzenle"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                  </svg>
+                </button>
+              )}
+            </div>
+
+            {/* TC Kimlik No */}
+            <div className="flex items-start gap-3 p-3 rounded-lg bg-gray-50/50 hover:bg-gray-50 transition-colors">
+              <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${candidateInfo?.national_id ? 'bg-[#16B24B]' : 'bg-red-100'}`}>
+                <svg className={`w-4 h-4 ${candidateInfo?.national_id ? 'text-white' : 'text-red-600'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V8a2 2 0 00-2-2h-5m-4 0V5a2 2 0 114 0v1m-4 0a2 2 0 104 0m-5 8a2 2 0 100-4 2 2 0 000 4zm0 0c1.306 0 2.417.835 2.83 2M9 14a3.001 3.001 0 00-2.83 2M15 11h3m-3 4h2" />
+                </svg>
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-xs font-medium text-gray-500 mb-0.5">TC Kimlik No</p>
+                {isEditing ? (
+                  <input
+                    type="text"
+                    name="nationalId"
+                    value={formData.nationalId}
+                    onChange={handleChange}
+                    maxLength={11}
+                    className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  />
+                ) : (
+                  <p className="text-sm">{candidateInfo?.national_id ? <span className="text-gray-900 font-mono">{candidateInfo.national_id}</span> : <span className="text-red-600 font-bold">Eksik bilgi</span>}</p>
+                )}
+              </div>
+              {!isEditing && !candidateInfo?.national_id && (
+                <button
+                  onClick={() => setIsEditing(true)}
+                  className="flex-shrink-0 p-1.5 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                  title="Düzenle"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                  </svg>
+                </button>
+              )}
+            </div>
+          </div>
+
+          <h3 className="text-base font-semibold text-gray-900 mb-4 pb-2 border-b border-gray-200 mt-6">İletişim & Adres Bilgileri</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-5">
+            {/* Telefon */}
+            <div className="flex items-start gap-3 p-3 rounded-lg bg-gray-50/50 hover:bg-gray-50 transition-colors">
+              <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${candidateInfo?.phone ? 'bg-[#16B24B]' : 'bg-red-100'}`}>
+                <svg className={`w-4 h-4 ${candidateInfo?.phone ? 'text-white' : 'text-red-600'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                </svg>
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-xs font-medium text-gray-500 mb-0.5">Telefon</p>
+                {isEditing ? (
+                  <input
+                    type="tel"
+                    name="phone"
+                    value={formData.phone}
+                    onChange={handleChange}
+                    className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  />
+                ) : (
+                  <p className="text-sm">{candidateInfo?.phone ? <span className="text-gray-900">{candidateInfo.phone}</span> : <span className="text-red-600 font-bold">Eksik bilgi</span>}</p>
+                )}
+              </div>
+              {!isEditing && !candidateInfo?.phone && (
+                <button
+                  onClick={() => setIsEditing(true)}
+                  className="flex-shrink-0 p-1.5 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                  title="Düzenle"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                  </svg>
+                </button>
+              )}
+            </div>
+
+            {/* E-posta */}
+            <div className="flex items-start gap-3 p-3 rounded-lg bg-gray-50/50 hover:bg-gray-50 transition-colors">
+              <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${candidateInfo?.email ? 'bg-[#16B24B]' : 'bg-red-100'}`}>
+                <svg className={`w-4 h-4 ${candidateInfo?.email ? 'text-white' : 'text-red-600'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                </svg>
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-xs font-medium text-gray-500 mb-0.5">E-posta</p>
+                {isEditing ? (
+                  <input
+                    type="email"
+                    name="email"
+                    value={formData.email}
+                    onChange={handleChange}
+                    className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  />
+                ) : (
+                  <p className="text-sm truncate">{candidateInfo?.email ? <span className="text-gray-900">{candidateInfo.email}</span> : <span className="text-red-600 font-bold">Eksik bilgi</span>}</p>
+                )}
+              </div>
+              {!isEditing && !candidateInfo?.email && (
+                <button
+                  onClick={() => setIsEditing(true)}
+                  className="flex-shrink-0 p-1.5 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                  title="Düzenle"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                  </svg>
+                </button>
+              )}
+            </div>
+
+            {/* İl ve İlçe - Yan Yana */}
+            <div className="md:col-span-2 lg:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-5">
+              {/* İl */}
+              <div className="flex items-start gap-3 p-3 rounded-lg bg-gray-50/50 hover:bg-gray-50 transition-colors">
+                <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${candidateInfo?.city ? 'bg-[#16B24B]' : 'bg-red-100'}`}>
+                  <svg className={`w-4 h-4 ${candidateInfo?.city ? 'text-white' : 'text-red-600'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                  </svg>
                 </div>
-                <div>
-                  <p className="text-xs font-medium text-gray-500 mb-1">E-posta</p>
-                  {isEditing ? (
-                    <input
-                      type="email"
-                      name="email"
-                      value={formData.email}
-                      onChange={handleChange}
-                      className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    />
-                  ) : (
-                    <p className="text-sm text-gray-900">{candidateInfo?.email || '-'}</p>
-                  )}
-                </div>
-                <div>
-                  <p className="text-xs font-medium text-gray-500 mb-1">İl</p>
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs font-medium text-gray-500 mb-0.5">İl</p>
                   {isEditing ? (
                     <input
                       type="text"
                       name="city"
                       value={formData.city}
                       onChange={handleChange}
-                      className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     />
                   ) : (
-                    <p className="text-sm text-gray-900">{candidateInfo?.city || '-'}</p>
+                    <p className="text-sm">{candidateInfo?.city ? <span className="text-gray-900">{candidateInfo.city}</span> : <span className="text-red-600 font-bold">Eksik bilgi</span>}</p>
                   )}
                 </div>
-                <div>
-                  <p className="text-xs font-medium text-gray-500 mb-1">İlçe</p>
+                {!isEditing && !candidateInfo?.city && (
+                  <button
+                    onClick={() => setIsEditing(true)}
+                    className="flex-shrink-0 p-1.5 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                    title="Düzenle"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                    </svg>
+                  </button>
+                )}
+              </div>
+
+              {/* İlçe */}
+              <div className="flex items-start gap-3 p-3 rounded-lg bg-gray-50/50 hover:bg-gray-50 transition-colors">
+                <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${candidateInfo?.district ? 'bg-[#16B24B]' : 'bg-red-100'}`}>
+                  <svg className={`w-4 h-4 ${candidateInfo?.district ? 'text-white' : 'text-red-600'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                  </svg>
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs font-medium text-gray-500 mb-0.5">İlçe</p>
                   {isEditing ? (
                     <input
                       type="text"
                       name="district"
                       value={formData.district}
                       onChange={handleChange}
-                      className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     />
                   ) : (
-                    <p className="text-sm text-gray-900">{candidateInfo?.district || '-'}</p>
+                    <p className="text-sm">{candidateInfo?.district ? <span className="text-gray-900">{candidateInfo.district}</span> : <span className="text-red-600 font-bold">Eksik bilgi</span>}</p>
                   )}
                 </div>
-                <div className="md:col-span-2">
-                  <p className="text-xs font-medium text-gray-500 mb-1">Açık Adres</p>
-                  {isEditing ? (
-                    <textarea
-                      name="address"
-                      value={formData.address}
-                      onChange={handleChange}
-                      rows={3}
-                      className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    />
-                  ) : (
-                    <p className="text-sm text-gray-900">{candidateInfo?.address || '-'}</p>
-                  )}
-                </div>
+                {!isEditing && !candidateInfo?.district && (
+                  <button
+                    onClick={() => setIsEditing(true)}
+                    className="flex-shrink-0 p-1.5 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                    title="Düzenle"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                    </svg>
+                  </button>
+                )}
               </div>
             </div>
 
-            {/* Eğitim ve Deneyim */}
-            <div>
-              <h3 className="text-lg font-semibold text-gray-900 mb-4 pb-2 border-b border-gray-200">
-                Eğitim ve Deneyim
-              </h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                  <p className="text-xs font-medium text-gray-500 mb-1">Eğitim Seviyesi</p>
-                  {isEditing ? (
-                    <select
-                      name="educationLevel"
-                      value={formData.educationLevel}
-                      onChange={handleChange}
-                      className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    >
-                      <option value="">Seçiniz</option>
-                      <option value="İlkokul">İlkokul</option>
-                      <option value="Ortaokul">Ortaokul</option>
-                      <option value="Lise">Lise</option>
-                      <option value="Ön Lisans">Ön Lisans</option>
-                      <option value="Lisans">Lisans</option>
-                      <option value="Yüksek Lisans">Yüksek Lisans</option>
-                      <option value="Doktora">Doktora</option>
-                    </select>
-                  ) : (
-                    <p className="text-sm text-gray-900">{candidateInfo?.education_level || '-'}</p>
-                  )}
-                </div>
-                <div>
-                  <p className="text-xs font-medium text-gray-500 mb-1">Deneyim (Yıl)</p>
-                  {isEditing ? (
-                    <input
-                      type="number"
-                      name="experienceYears"
-                      value={formData.experienceYears}
-                      onChange={handleChange}
-                      min="0"
-                      className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    />
-                  ) : (
-                    <p className="text-sm text-gray-900">{candidateInfo?.experience_years || '0'}</p>
-                  )}
-                </div>
+            {/* Açık Adres */}
+            <div className="flex items-start gap-3 p-3 rounded-lg bg-gray-50/50 hover:bg-gray-50 transition-colors md:col-span-2 lg:col-span-3">
+              <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${candidateInfo?.address ? 'bg-[#16B24B]' : 'bg-red-100'}`}>
+                <svg className={`w-4 h-4 ${candidateInfo?.address ? 'text-white' : 'text-red-600'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+                </svg>
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-xs font-medium text-gray-500 mb-0.5">Açık Adres</p>
+                {isEditing ? (
+                  <textarea
+                    name="address"
+                    value={formData.address}
+                    onChange={handleChange}
+                    rows={2}
+                    className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+                  />
+                ) : (
+                  <p className="text-sm break-words">{candidateInfo?.address ? <span className="text-gray-900">{candidateInfo.address}</span> : <span className="text-red-600 font-bold">Eksik bilgi</span>}</p>
+                )}
+              </div>
+              {!isEditing && !candidateInfo?.address && (
+                <button
+                  onClick={() => setIsEditing(true)}
+                  className="flex-shrink-0 p-1.5 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                  title="Düzenle"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                  </svg>
+                </button>
+              )}
+            </div>
+          </div>
+
+          <h3 className="text-base font-semibold text-gray-900 mb-4 pb-2 border-b border-gray-200 mt-6">Araç ve Belge</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-5">
+            {/* Araç Tipi */}
+            <div className="flex items-start gap-3 p-3 rounded-lg bg-gray-50/50 hover:bg-gray-50 transition-colors">
+              <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${vehicleInfo.vehicle_type ? 'bg-[#16B24B]' : 'bg-red-100'}`}>
+                <svg className={`w-4 h-4 ${vehicleInfo.vehicle_type ? 'text-white' : 'text-red-600'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
+                </svg>
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-xs font-medium text-gray-500 mb-0.5">Araç Tipi</p>
+                <p className="text-sm">
+                  {vehicleInfo.vehicle_type === 'MOTORCYCLE' ? <span className="text-gray-900">Motosiklet</span> : vehicleInfo.vehicle_type === 'CAR' ? <span className="text-gray-900">Araba</span> : <span className="text-red-600 font-bold">Eksik bilgi</span>}
+                </p>
               </div>
             </div>
 
-            {/* Beceriler */}
-            {(isEditing || (candidateInfo?.skills && Array.isArray(candidateInfo.skills) && candidateInfo.skills.length > 0)) && (
-              <div>
-                <h3 className="text-lg font-semibold text-gray-900 mb-4 pb-2 border-b border-gray-200">
-                  Beceriler
-                </h3>
-                {isEditing ? (
-                  <div className="space-y-3">
-                    <div className="flex gap-2">
-                      <input
-                        type="text"
-                        value={formData.currentSkill}
-                        onChange={(e) => setFormData((prev) => ({ ...prev, currentSkill: e.target.value }))}
-                        onKeyPress={(e) => {
-                          if (e.key === 'Enter') {
-                            e.preventDefault();
-                            addSkill();
-                          }
-                        }}
-                        placeholder="Beceri ekleyin (Enter)"
-                        className="flex-1 px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      />
-                      <button
-                        type="button"
-                        onClick={addSkill}
-                        className="px-4 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-                      >
-                        Ekle
-                      </button>
-                    </div>
-                    {formData.skills.length > 0 && (
-                      <div className="flex flex-wrap gap-2">
-                        {formData.skills.map((skill: string, idx: number) => (
-                          <span
-                            key={idx}
-                            className="inline-flex items-center gap-2 px-3 py-1.5 bg-blue-50 text-blue-700 rounded-lg text-sm font-medium border border-blue-200"
-                          >
-                            {skill}
-                            <button
-                              type="button"
-                              onClick={() => removeSkill(skill)}
-                              className="text-blue-900 hover:text-red-600"
-                            >
-                              ×
-                            </button>
-                          </span>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                ) : (
-                  <div className="flex flex-wrap gap-2">
-                    {candidateInfo.skills.map((skill: string, idx: number) => (
-                      <span
-                        key={idx}
-                        className="inline-flex items-center px-3 py-1.5 bg-blue-50 text-blue-700 rounded-lg text-sm font-medium border border-blue-200"
-                      >
-                        {skill}
-                      </span>
-                    ))}
-                  </div>
-                )}
+            {/* Motosiklet/Araba Türü */}
+            {(vehicleInfo.vehicle_type === 'MOTORCYCLE' && vehicleInfo.vehicle_subtype) || (vehicleInfo.vehicle_type === 'CAR' && vehicleInfo.vehicle_subtype) ? (
+              <div className="flex items-start gap-3 p-3 rounded-lg bg-gray-50/50 hover:bg-gray-50 transition-colors">
+                <div className="w-8 h-8 rounded-lg bg-[#16B24B] flex items-center justify-center flex-shrink-0">
+                  <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
+                  </svg>
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs font-medium text-gray-500 mb-0.5">
+                    {vehicleInfo.vehicle_type === 'MOTORCYCLE' ? 'Motosiklet Türü' : 'Araba Türü'}
+                  </p>
+                  <p className="text-sm">
+                    {vehicleInfo.vehicle_subtype === '50cc' ? <span className="text-gray-900">50cc ve Altı</span> : 
+                     vehicleInfo.vehicle_subtype === '100cc_plus' ? <span className="text-gray-900">100cc ve Üzeri</span> :
+                     vehicleInfo.vehicle_subtype === 'BINEK' ? <span className="text-gray-900">Binek Araç</span> :
+                     vehicleInfo.vehicle_subtype === 'TICARI' ? <span className="text-gray-900">Ticari Araç</span> : <span className="text-red-600 font-bold">Eksik bilgi</span>}
+                  </p>
+                </div>
               </div>
-            )}
+            ) : null}
 
-            {/* Diller */}
-            {(isEditing || (candidateInfo?.languages && Array.isArray(candidateInfo.languages) && candidateInfo.languages.length > 0)) && (
-              <div>
-                <h3 className="text-lg font-semibold text-gray-900 mb-4 pb-2 border-b border-gray-200">
-                  Diller
-                </h3>
-                {isEditing ? (
-                  <div className="space-y-3">
-                    <div className="flex gap-2">
-                      <input
-                        type="text"
-                        value={formData.currentLanguageName}
-                        onChange={(e) => setFormData((prev) => ({ ...prev, currentLanguageName: e.target.value }))}
-                        placeholder="Dil adı"
-                        className="flex-1 px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      />
-                      <select
-                        value={formData.currentLanguageLevel}
-                        onChange={(e) => setFormData((prev) => ({ ...prev, currentLanguageLevel: e.target.value }))}
-                        className="px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      >
-                        <option value="">Seviye</option>
-                        <option value="Başlangıç">Başlangıç</option>
-                        <option value="Orta">Orta</option>
-                        <option value="İleri">İleri</option>
-                        <option value="Ana Dil">Ana Dil</option>
-                      </select>
-                      <button
-                        type="button"
-                        onClick={addLanguage}
-                        className="px-4 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-                      >
-                        Ekle
-                      </button>
-                    </div>
-                    {formData.languages.length > 0 && (
-                      <div className="space-y-2">
-                        {formData.languages.map((lang: any, idx: number) => (
-                          <div key={idx} className="flex items-center justify-between py-2 px-3 bg-gray-50 rounded-lg">
-                            <div className="flex items-center gap-3">
-                              <span className="text-sm text-gray-900 font-medium">{lang.name || '-'}</span>
-                              <span className="text-xs text-gray-500">{lang.level || '-'}</span>
-                            </div>
-                            <button
-                              type="button"
-                              onClick={() => removeLanguage(lang.name)}
-                              className="text-red-600 hover:text-red-800"
-                            >
-                              ×
-                            </button>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                ) : (
-                  <div className="space-y-2">
-                    {candidateInfo.languages.map((lang: any, idx: number) => (
-                      <div key={idx} className="flex items-center justify-between py-2 px-3 bg-gray-50 rounded-lg">
-                        <span className="text-sm text-gray-900 font-medium">{lang.name || '-'}</span>
-                        <span className="text-xs text-gray-500">{lang.level || '-'}</span>
-                      </div>
-                    ))}
-                  </div>
-                )}
+            {/* Şirketiniz Var mı? */}
+            <div className="flex items-start gap-3 p-3 rounded-lg bg-gray-50/50 hover:bg-gray-50 transition-colors">
+              <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${vehicleInfo.has_company !== null ? 'bg-[#16B24B]' : 'bg-red-100'}`}>
+                <svg className={`w-4 h-4 ${vehicleInfo.has_company !== null ? 'text-white' : 'text-red-600'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                </svg>
               </div>
-            )}
+              <div className="flex-1 min-w-0">
+                <p className="text-xs font-medium text-gray-500 mb-0.5">Şirketiniz Var mı?</p>
+                <p className="text-sm">
+                  {vehicleInfo.has_company === true ? <span className="text-gray-900">Evet</span> : vehicleInfo.has_company === false ? <span className="text-gray-900">Hayır</span> : <span className="text-red-600 font-bold">Eksik bilgi</span>}
+                </p>
+              </div>
+            </div>
+
+            {/* P1 Belgesi Var mı? */}
+            <div className="flex items-start gap-3 p-3 rounded-lg bg-gray-50/50 hover:bg-gray-50 transition-colors">
+              <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${vehicleInfo.has_p1 !== null ? 'bg-[#16B24B]' : 'bg-red-100'}`}>
+                <svg className={`w-4 h-4 ${vehicleInfo.has_p1 !== null ? 'text-white' : 'text-red-600'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-xs font-medium text-gray-500 mb-0.5">P1 Belgesi Var mı?</p>
+                <p className="text-sm">
+                  {vehicleInfo.has_p1 === true ? <span className="text-gray-900">Evet</span> : vehicleInfo.has_p1 === false ? <span className="text-gray-900">Hayır</span> : <span className="text-red-600 font-bold">Eksik bilgi</span>}
+                </p>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -934,58 +955,48 @@ export default function CandidateProfilePage() {
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {[
-              { 
-                type: 'CV', 
-                label: 'CV / Özgeçmiş', 
+              // P1 Belgesi - sadece has_p1 === true ise göster
+              ...(vehicleInfo.has_p1 === true ? [{
+                type: 'P1_BELGESI' as const,
+                label: 'P1 Belgesi',
                 icon: (
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                   </svg>
-                ), 
-                color: 'blue' 
-              },
-              { 
-                type: 'KIMLIK', 
-                label: 'Kimlik Belgesi', 
+                ),
+                color: 'blue'
+              }] : []),
+              {
+                type: 'EHLIYET' as const,
+                label: 'Ehliyet',
                 icon: (
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V8a2 2 0 00-2-2h-5m-4 0V5a2 2 0 114 0v1m-4 0a2 2 0 104 0m-5 8a2 2 0 100-4 2 2 0 000 4zm0 0c1.306 0 2.417.835 2.83 2M9 14a3.001 3.001 0 00-2.83 2M15 11h3m-3 4h2" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                   </svg>
-                ), 
-                color: 'indigo' 
+                ),
+                color: 'green'
               },
-              { 
-                type: 'POLICE', 
-                label: 'Sabıka Kaydı', 
+              {
+                type: 'RUHSAT' as const,
+                label: 'Ruhsat',
                 icon: (
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                   </svg>
-                ), 
-                color: 'purple' 
+                ),
+                color: 'purple'
               },
-              { 
-                type: 'RESIDENCE', 
-                label: 'İkametgah Belgesi', 
+              // Vergi Levhası - sadece has_company === true ise göster
+              ...(vehicleInfo.has_company === true ? [{
+                type: 'VERGI_LEVHASI' as const,
+                label: 'Vergi Levhası',
                 icon: (
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
                   </svg>
-                ), 
-                color: 'green' 
-              },
-              { 
-                type: 'DIPLOMA', 
-                label: 'Diploma', 
-                icon: (
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 14l9-5-9-5-9 5 9 5z" />
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 14l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14z" />
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 14v6M12 8v6" />
-                  </svg>
-                ), 
-                color: 'amber' 
-              },
+                ),
+                color: 'amber'
+              }] : []),
             ].map((docType) => {
               const document = documents.find((doc) => doc.document_type === docType.type);
               const getStatusColor = (status: string) => {
@@ -1120,7 +1131,7 @@ export default function CandidateProfilePage() {
                         ) : (
                           <button
                             onClick={() => {
-                              setSelectedDocumentType(docType.type as 'CV' | 'POLICE' | 'RESIDENCE' | 'KIMLIK' | 'DIPLOMA');
+                              setSelectedDocumentType(docType.type as 'P1_BELGESI' | 'EHLIYET' | 'RUHSAT' | 'VERGI_LEVHASI');
                               setSelectedDocumentId(document.id);
                               setUploadModalOpen(true);
                               setUploadError(null);
@@ -1140,7 +1151,7 @@ export default function CandidateProfilePage() {
                   ) : (
                     <button
                       onClick={() => {
-                        setSelectedDocumentType(docType.type as 'CV' | 'POLICE' | 'RESIDENCE' | 'KIMLIK' | 'DIPLOMA');
+                        setSelectedDocumentType(docType.type as 'P1_BELGESI' | 'EHLIYET' | 'RUHSAT' | 'VERGI_LEVHASI');
                         setSelectedDocumentId(null);
                         setUploadModalOpen(true);
                         setUploadError(null);
@@ -1166,7 +1177,12 @@ export default function CandidateProfilePage() {
               applicationStatus={profile?.application_status || null}
               candidateInfo={candidateInfo}
               documents={documents}
-              requiredDocumentTypes={['KIMLIK', 'RESIDENCE', 'POLICE', 'CV']}
+              requiredDocumentTypes={[
+                'EHLIYET',
+                'RUHSAT',
+                ...(vehicleInfo.has_p1 === true ? ['P1_BELGESI'] : []),
+                ...(vehicleInfo.has_company === true ? ['VERGI_LEVHASI'] : []),
+              ]}
               onSuccess={() => {
                 // Başarılı gönderimden sonra verileri yeniden yükle
                 loadData();
@@ -1352,11 +1368,10 @@ export default function CandidateProfilePage() {
                     Belge Türü
                   </label>
                   <div className="px-4 py-3 bg-gray-50 rounded-lg border border-gray-200 text-sm text-gray-900">
-                    {selectedDocumentType === 'CV' && 'CV / Özgeçmiş'}
-                    {selectedDocumentType === 'KIMLIK' && 'Kimlik Belgesi'}
-                    {selectedDocumentType === 'POLICE' && 'Sabıka Kaydı'}
-                    {selectedDocumentType === 'RESIDENCE' && 'İkametgah Belgesi'}
-                    {selectedDocumentType === 'DIPLOMA' && 'Diploma'}
+                    {selectedDocumentType === 'P1_BELGESI' && 'P1 Belgesi'}
+                    {selectedDocumentType === 'EHLIYET' && 'Ehliyet'}
+                    {selectedDocumentType === 'RUHSAT' && 'Ruhsat'}
+                    {selectedDocumentType === 'VERGI_LEVHASI' && 'Vergi Levhası'}
                   </div>
                 </div>
 
@@ -1418,6 +1433,10 @@ export default function CandidateProfilePage() {
           </div>
         </div>
       )}
+      
+      <div className="mt-12 md:mt-16">
+        <Footer />
+      </div>
     </div>
   );
 }
