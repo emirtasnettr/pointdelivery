@@ -5,17 +5,17 @@
  * Service role key ile signed url üretilir; sahiplik doğrulanır.
  */
 
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { getAdminClient } from '@/lib/supabase/admin-client';
 import type { Profile } from '@/types/database';
 
 export async function POST(
-  request: Request,
-  { params }: { params: { id: string } }
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
 ): Promise<NextResponse> {
   try {
-    const candidateId = params.id;
+    const { id: candidateId } = await params;
     const body = (await request.json().catch(() => null)) as null | { filePath?: string };
     const filePath = body?.filePath;
 

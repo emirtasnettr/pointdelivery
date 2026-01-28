@@ -5,17 +5,17 @@
  * Service role key ile RLS bypass edilir, ama önce middleman->candidate sahipliği doğrulanır.
  */
 
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { getAdminClient } from '@/lib/supabase/admin-client';
 import type { Profile, Document } from '@/types/database';
 
 export async function GET(
-  _request: Request,
-  { params }: { params: { id: string } }
+  _request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
 ): Promise<NextResponse> {
   try {
-    const candidateId = params.id;
+    const { id: candidateId } = await params;
     const supabase = await createClient();
     const {
       data: { user },
