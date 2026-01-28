@@ -10,11 +10,11 @@ const montserrat = Montserrat({
 
 export const metadata: Metadata = {
   title: {
-    default: "JobulAI",
-    template: "%s • JobulAI",
+    default: "Point Delivery - Çalışan Yönetim Sistemi",
+    template: "%s • Point Delivery",
   },
   description:
-    "JobulAI; müşteri, danışman ve aday akışlarını tek panelde yöneten işe alım ve operasyon platformudur.",
+    "Point Delivery çalışan yönetim sistemi; kurye başvuruları, evrak süreçleri ve rol bazlı paneller ile operasyonlarınızı tek yerden yönetin.",
 };
 
 export default function RootLayout({
