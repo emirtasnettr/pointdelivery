@@ -6,15 +6,14 @@
 
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import React, { useState, useEffect, Suspense } from 'react';
+import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import Link from 'next/link';
 import Footer from '@/components/footer';
 
-export default function ResetPasswordPage() {
+function ResetPasswordPageContent() {
   const router = useRouter();
-  const searchParams = useSearchParams();
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -271,5 +270,19 @@ export default function ResetPasswordPage() {
 
       <Footer />
     </div>
+  );
+}
+
+export default function ResetPasswordPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-gray-50 to-white">
+          <p className="text-gray-600">Yükleniyor...</p>
+        </div>
+      }
+    >
+      <ResetPasswordPageContent />
+    </Suspense>
   );
 }
