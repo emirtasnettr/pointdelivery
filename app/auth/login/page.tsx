@@ -22,9 +22,15 @@ function LoginPageContent() {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
+  const passwordResetParam = searchParams.get('password_reset');
   const [error, setError] = useState<string | null>(
     errorParam === 'proxy_error' 
       ? 'Proxy hatası oluştu. Lütfen terminal log\'larını kontrol edin veya sayfayı yenileyin.' 
+      : null
+  );
+  const [successMessage, setSuccessMessage] = useState<string | null>(
+    passwordResetParam === 'success' 
+      ? 'Şifreniz başarıyla güncellendi. Yeni şifrenizle giriş yapabilirsiniz.' 
       : null
   );
   const [loading, setLoading] = useState(false);
@@ -306,6 +312,13 @@ function LoginPageContent() {
                 Şifremi Unuttum?
               </Link>
             </div>
+
+            {/* Success Message */}
+            {successMessage && (
+              <div className="rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700">
+                {successMessage}
+              </div>
+            )}
 
             {/* Error Message */}
             {error && (
