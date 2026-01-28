@@ -132,16 +132,19 @@ export default function MiddlemanCandidateDetailPage() {
 
         setCandidateInfo(info || null);
 
-        // Belgeleri server-side API üzerinden al (RLS/policy sorunlarını bypass eder)
-        const res = await fetch(`/api/middleman/candidates/${candidateId}/documents`, {
-          method: 'GET',
-          headers: { 'Content-Type': 'application/json' },
-        });
-        const json = (await res.json().catch(() => null)) as any;
-        if (!res.ok) {
-          throw new Error(json?.error || 'Belgeler alınamadı');
+        // Tüm belgeleri al (RLS politikaları ile korumalı)
+        const { data: docs, error: docsError } = await supabase
+          .from('documents')
+          .select('*')
+          .eq('profile_id', candidateId)
+          .order('created_at', { ascending: false });
+
+        if (docsError) {
+          console.error('Documents query error:', docsError);
+          // RLS hatası olabilir, ama devam et (boş liste göster)
         }
-        setDocuments(json?.documents || []);
+
+        setDocuments(docs || []);
       } catch (err: any) {
         setError(err.message || 'Veriler yüklenirken hata oluştu');
         console.error('Error loading data:', err);
@@ -151,6 +154,39 @@ export default function MiddlemanCandidateDetailPage() {
     }
 
     loadData();
+
+    // Supabase Realtime subscription - belgelerdeki değişiklikleri dinle
+    const channel = supabase
+      .channel(`documents:${candidateId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'documents',
+          filter: `profile_id=eq.${candidateId}`,
+        },
+        async (payload) => {
+          console.log('Document change detected:', payload);
+          // Sadece belgeleri yeniden yükle
+          try {
+            const { data: docs } = await supabase
+              .from('documents')
+              .select('*')
+              .eq('profile_id', candidateId)
+              .order('created_at', { ascending: false });
+
+            setDocuments(docs || []);
+          } catch (err) {
+            console.error('Error reloading documents:', err);
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [router, supabase, candidateId]);
 
   // Dropdown dışına tıklama kontrolü
@@ -754,17 +790,15 @@ export default function MiddlemanCandidateDetailPage() {
                           <button
                             onClick={async () => {
                               try {
-                                const res = await fetch(
-                                  `/api/middleman/candidates/${candidateId}/documents/signed-url`,
-                                  {
-                                    method: 'POST',
-                                    headers: { 'Content-Type': 'application/json' },
-                                    body: JSON.stringify({ filePath: document.file_path }),
-                                  }
-                                );
-                                const json = (await res.json().catch(() => null)) as any;
-                                if (!res.ok) throw new Error(json?.error || 'Signed URL alınamadı');
-                                if (json?.signedUrl) window.open(json.signedUrl, '_blank');
+                                const { data, error } = await supabase.storage
+                                  .from('documents')
+                                  .createSignedUrl(document.file_path, 3600);
+                                
+                                if (error) throw error;
+                                
+                                if (data?.signedUrl) {
+                                  window.open(data.signedUrl, '_blank');
+                                }
                               } catch (err: any) {
                                 console.error('Belge görüntüleme hatası:', err);
                                 alert('Belge görüntülenirken hata oluştu: ' + err.message);
