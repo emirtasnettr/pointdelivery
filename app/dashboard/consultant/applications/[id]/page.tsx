@@ -50,6 +50,7 @@ interface Profile {
   role: string;
   created_at: string;
   application_status: string | null;
+  middleman_id?: string | null;
 }
 
 interface Application {
@@ -57,6 +58,7 @@ interface Application {
   candidateInfo: CandidateInfo | null;
   documents: Document[];
   applicationStatus: 'NEW_APPLICATION' | 'EVALUATION' | 'APPROVED' | 'REJECTED' | 'UPDATE_REQUIRED';
+  middleman: { id: string; full_name: string | null } | null;
 }
 
 export default function ApplicationDetailPage() {
@@ -148,6 +150,21 @@ export default function ApplicationDetailPage() {
           .eq('profile_id', profileId)
           .order('created_at', { ascending: false });
 
+        // Aday bir aracı (middleman) tarafından eklendiyse middleman bilgisini al
+        let middleman: { id: string; full_name: string | null } | null = null;
+        if (candidateProfile?.middleman_id) {
+          const { data: middlemanProfile } = await supabase
+            .from('profiles')
+            .select('id, full_name')
+            .eq('id', candidateProfile.middleman_id)
+            .eq('role', 'MIDDLEMAN')
+            .maybeSingle();
+
+          if (middlemanProfile) {
+            middleman = { id: middlemanProfile.id, full_name: middlemanProfile.full_name ?? null };
+          }
+        }
+
         const applicationStatus = (candidateProfile.application_status || 'NEW_APPLICATION') as
           'NEW_APPLICATION' | 'EVALUATION' | 'APPROVED' | 'REJECTED' | 'UPDATE_REQUIRED';
 
@@ -156,6 +173,7 @@ export default function ApplicationDetailPage() {
           candidateInfo: candidateInfo || null,
           documents: documents || [],
           applicationStatus,
+          middleman,
         };
         
         setApplication(applicationData);
@@ -743,6 +761,29 @@ export default function ApplicationDetailPage() {
                           )}
                         </div>
                       ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Aracı Bilgisi (varsa) */}
+                {application.middleman && (
+                  <div className="bg-gradient-to-br from-slate-50 to-gray-50 rounded-xl p-4 border border-slate-200">
+                    <h3 className="text-sm font-bold text-slate-900 mb-3 flex items-center gap-2">
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                      </svg>
+                      Aracı
+                    </h3>
+                    <div className="text-sm">
+                      <label className="block text-xs font-semibold text-slate-600 uppercase tracking-wide mb-1">
+                        Aracı Ad Soyad
+                      </label>
+                      <p className="text-gray-900 font-semibold">
+                        {application.middleman.full_name || 'Belirtilmemiş'}
+                      </p>
+                      <p className="text-xs text-gray-500 mt-1">
+                        ID: <span className="font-mono">{application.middleman.id.slice(0, 8)}...</span>
+                      </p>
                     </div>
                   </div>
                 )}
