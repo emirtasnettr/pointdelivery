@@ -299,17 +299,19 @@ export default function CustomerJobsPage() {
       <header className="sticky top-0 z-30 bg-white/80 backdrop-blur-md border-b border-gray-100">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
           <div className="flex items-center gap-6">
-            {siteLogo ? (
-              <img
-                src={siteLogo}
-                alt="Site Logo"
-                className="h-10 w-auto max-w-[200px] object-contain"
-              />
-            ) : (
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-400 to-indigo-500 flex items-center justify-center">
-                <span className="text-lg font-semibold text-white">J</span>
-              </div>
-            )}
+            <Link href="/dashboard/customer" className="flex items-center">
+              {siteLogo ? (
+                <img
+                  src={siteLogo}
+                  alt="Site Logo"
+                  className="h-10 w-auto max-w-[200px] object-contain"
+                />
+              ) : (
+                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-400 to-indigo-500 flex items-center justify-center">
+                  <span className="text-lg font-semibold text-white">J</span>
+                </div>
+              )}
+            </Link>
 
             {/* Fırsat Yönetimi Dropdown */}
             <div className="relative" ref={jobMenuRef}>

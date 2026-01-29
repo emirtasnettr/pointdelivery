@@ -27,7 +27,6 @@ interface Document {
 interface CandidateInfo {
   id: string;
   profile_id: string;
-  experience_years: number | null;
   phone: string | null;
   email: string | null;
   national_id: string | null;
@@ -144,7 +143,7 @@ export default function ConsultantDashboardPage() {
           candidates.map(async (candidate) => {
             const { data: candidateInfo } = await supabase
               .from('candidate_info')
-              .select('id, profile_id, phone, email, national_id, experience_years')
+              .select('id, profile_id, phone, email, national_id')
               .eq('profile_id', candidate.id)
               .single();
 
@@ -354,7 +353,7 @@ export default function ConsultantDashboardPage() {
         <header className="sticky top-0 z-50 border-b border-gray-100 bg-white/90 backdrop-blur">
           <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
             <div className="flex items-center gap-6">
-              <Link href="/" className="inline-flex items-center">
+              <Link href="/dashboard/consultant" className="inline-flex items-center">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img src="/pointdlogo.webp" alt="Point Delivery" className="w-auto" style={{ height: '42px', width: 'auto' }} />
               </Link>

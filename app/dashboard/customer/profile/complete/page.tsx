@@ -8,6 +8,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
 
 export default function CompleteCustomerProfilePage() {
@@ -165,7 +166,7 @@ export default function CompleteCustomerProfilePage() {
       {/* Header */}
       <header className="sticky top-0 z-30 bg-white/80 backdrop-blur-md border-b border-gray-100">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-          <div className="flex items-center">
+          <Link href="/dashboard/customer" className="flex items-center">
             {siteLogo ? (
               <img
                 src={siteLogo}
@@ -177,7 +178,7 @@ export default function CompleteCustomerProfilePage() {
                 <span className="text-lg font-semibold text-white">J</span>
               </div>
             )}
-          </div>
+          </Link>
         </div>
       </header>
 

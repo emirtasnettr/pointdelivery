@@ -83,6 +83,7 @@ export default function RegisterPage() {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [registrationSuccess, setRegistrationSuccess] = useState(false);
 
   const cityIdNum = formData.cityId ? parseInt(formData.cityId, 10) : 0;
   const cityName = cityIdNum ? provinces.find((p) => p.id === cityIdNum)?.name ?? '' : '';
@@ -108,12 +109,34 @@ export default function RegisterPage() {
         setError('Ad Soyad zorunludur');
         return false;
       }
+      // Ad Soyad en az 2 kelime olmalı
+      const nameParts = formData.fullName.trim().split(' ').filter(part => part.length > 0);
+      if (nameParts.length < 2) {
+        setError('Lütfen ad ve soyadınızı ayrı ayrı girin (örnek: Emir Taş)');
+        return false;
+      }
       if (!formData.phone.trim()) {
         setError('Telefon numarası zorunludur');
         return false;
       }
+      if (formData.phone.length !== 10 || !formData.phone.startsWith('5')) {
+        setError('Geçerli bir telefon numarası girin (5XX XXX XX XX)');
+        return false;
+      }
       if (!formData.email.trim()) {
         setError('Mail adresi zorunludur');
+        return false;
+      }
+      // Türkçe karakter kontrolü
+      const turkishChars = /[çÇşŞğĞüÜöÖıİ]/;
+      if (turkishChars.test(formData.email)) {
+        setError('Mail adresinde Türkçe karakter kullanılamaz');
+        return false;
+      }
+      // Email format validasyonu
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(formData.email)) {
+        setError('Geçerli bir mail adresi girin (örnek: isim@domain.com)');
         return false;
       }
       return true;
@@ -195,7 +218,7 @@ export default function RegisterPage() {
           data: {
             full_name: formData.fullName,
             role: 'CANDIDATE',
-            phone: formData.phone,
+            phone: `+90${formData.phone}`,
             city: cityName,
             district: formData.district,
             vehicle_type: formData.vehicleType,
@@ -238,21 +261,15 @@ export default function RegisterPage() {
 
         await supabase.from('candidate_info').insert({
           profile_id: data.user.id,
-          phone: formData.phone,
+          phone: `+90${formData.phone}`,
           email: formData.email,
           city: cityName,
           district: formData.district,
         });
 
-        const redirectPath =
-          profile?.role === 'ADMIN'
-            ? '/dashboard/admin'
-            : profile?.role === 'CONSULTANT'
-              ? '/dashboard/consultant'
-              : profile?.role === 'MIDDLEMAN'
-                ? '/dashboard/middleman'
-                : '/dashboard/candidate';
-        window.location.href = redirectPath;
+        // Kayıt başarılı - başarı ekranını göster
+        setRegistrationSuccess(true);
+        setLoading(false);
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Bir hata oluştu');
@@ -290,6 +307,79 @@ export default function RegisterPage() {
           <div className="absolute -bottom-24 left-1/3 h-72 w-[44rem] -translate-x-1/2 rounded-full bg-[#16B24B]/15 blur-3xl" />
         </div>
 
+        {/* Kayıt Başarılı Ekranı */}
+        {registrationSuccess ? (
+          <div className="relative mx-auto max-w-xl px-4 py-16 sm:px-6 lg:px-8">
+            <div className="rounded-2xl border border-gray-200 bg-white p-8 shadow-lg text-center">
+              {/* Başarı İkonu */}
+              <div className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-green-100">
+                <svg className="h-10 w-10 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+              </div>
+
+              {/* Başlık */}
+              <h1 className="text-2xl font-bold text-gray-900 mb-2">
+                Kaydınız Başarıyla Oluşturuldu!
+              </h1>
+
+              {/* Açıklama */}
+              <p className="text-gray-600 mb-6">
+                Hesabınızı aktif etmek için lütfen <strong className="text-gray-900">{formData.email}</strong> adresine gönderilen doğrulama bağlantısına tıklayın.
+              </p>
+
+              {/* Mail İkonu ve Bilgi */}
+              <div className="bg-blue-50 rounded-xl p-4 mb-6">
+                <div className="flex items-center justify-center gap-3">
+                  <div className="flex h-12 w-12 items-center justify-center rounded-full bg-blue-100">
+                    <svg className="h-6 w-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                    </svg>
+                  </div>
+                  <div className="text-left">
+                    <p className="text-sm font-semibold text-blue-900">Mail kutunuzu kontrol edin</p>
+                    <p className="text-xs text-blue-700">Spam klasörünü de kontrol etmeyi unutmayın</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Adımlar */}
+              <div className="text-left bg-gray-50 rounded-xl p-4 mb-6">
+                <p className="text-sm font-semibold text-gray-900 mb-3">Sonraki Adımlar:</p>
+                <div className="space-y-2">
+                  <div className="flex items-start gap-3">
+                    <span className="flex h-6 w-6 items-center justify-center rounded-full bg-green-500 text-white text-xs font-bold">1</span>
+                    <p className="text-sm text-gray-600">Mail adresinize gelen doğrulama linkine tıklayın</p>
+                  </div>
+                  <div className="flex items-start gap-3">
+                    <span className="flex h-6 w-6 items-center justify-center rounded-full bg-gray-300 text-white text-xs font-bold">2</span>
+                    <p className="text-sm text-gray-600">Giriş yaparak profilinizi tamamlayın</p>
+                  </div>
+                  <div className="flex items-start gap-3">
+                    <span className="flex h-6 w-6 items-center justify-center rounded-full bg-gray-300 text-white text-xs font-bold">3</span>
+                    <p className="text-sm text-gray-600">Gerekli belgeleri yükleyin</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Giriş Yap Butonu */}
+              <Link
+                href="/auth/login"
+                className="inline-flex items-center justify-center gap-2 w-full rounded-xl bg-[#16B24B] px-6 py-3 text-sm font-semibold text-white shadow-sm hover:bg-[#118836] transition-colors"
+              >
+                <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1" />
+                </svg>
+                Giriş Sayfasına Git
+              </Link>
+
+              {/* Yardım */}
+              <p className="mt-4 text-xs text-gray-500">
+                Mail almadıysanız spam klasörünü kontrol edin veya birkaç dakika bekleyin.
+              </p>
+            </div>
+          </div>
+        ) : (
         <div className="relative mx-auto grid max-w-7xl grid-cols-1 items-start gap-8 px-4 py-10 sm:px-6 lg:grid-cols-2 lg:items-center lg:px-8 lg:py-16">
           <div className="flex justify-center">
             <div className="w-full max-w-lg">
@@ -329,7 +419,17 @@ export default function RegisterPage() {
                         id="fullName"
                         type="text"
                         value={formData.fullName}
-                        onChange={(e) => setFormData((p) => ({ ...p, fullName: e.target.value }))}
+                        onChange={(e) => {
+                          // Title Case: Her kelimenin ilk harfi büyük, diğerleri küçük
+                          const toTitleCase = (str: string) => {
+                            return str
+                              .toLowerCase()
+                              .split(' ')
+                              .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+                              .join(' ');
+                          };
+                          setFormData((p) => ({ ...p, fullName: toTitleCase(e.target.value) }));
+                        }}
                         className={inputClass}
                         placeholder="Adınız Soyadınız"
                         disabled={dis}
@@ -337,15 +437,36 @@ export default function RegisterPage() {
                     </div>
                     <div>
                       <label htmlFor="phone" className={labelClass}>Telefon Numarası {requiredStar}</label>
-                      <input
-                        id="phone"
-                        type="tel"
-                        value={formData.phone}
-                        onChange={(e) => setFormData((p) => ({ ...p, phone: e.target.value }))}
-                        className={inputClass}
-                        placeholder="05XX XXX XX XX"
-                        disabled={dis}
-                      />
+                      <div className="flex">
+                        <span className="inline-flex items-center px-4 text-sm text-gray-700 bg-gray-100 border border-r-0 border-gray-300 rounded-l-xl font-medium">
+                          +90
+                        </span>
+                        <input
+                          id="phone"
+                          type="tel"
+                          value={(() => {
+                            // Telefon numarasını formatla: 5XX XXX XX XX
+                            const digits = formData.phone;
+                            if (digits.length <= 3) return digits;
+                            if (digits.length <= 6) return `${digits.slice(0, 3)} ${digits.slice(3)}`;
+                            if (digits.length <= 8) return `${digits.slice(0, 3)} ${digits.slice(3, 6)} ${digits.slice(6)}`;
+                            return `${digits.slice(0, 3)} ${digits.slice(3, 6)} ${digits.slice(6, 8)} ${digits.slice(8)}`;
+                          })()}
+                          onChange={(e) => {
+                            // Sadece rakamları al
+                            const value = e.target.value.replace(/\D/g, '');
+                            // Maksimum 10 karakter
+                            if (value.length <= 10) {
+                              setFormData((p) => ({ ...p, phone: value }));
+                            }
+                          }}
+                          className={`${inputClass} rounded-l-none`}
+                          placeholder="5XX XXX XX XX"
+                          maxLength={14}
+                          disabled={dis}
+                        />
+                      </div>
+                      <p className="mt-1 text-xs text-gray-500">Örnek: 532 123 45 67</p>
                     </div>
                     <div>
                       <label htmlFor="email" className={labelClass}>Mail Adresi {requiredStar}</label>
@@ -353,7 +474,7 @@ export default function RegisterPage() {
                         id="email"
                         type="email"
                         value={formData.email}
-                        onChange={(e) => setFormData((p) => ({ ...p, email: e.target.value }))}
+                        onChange={(e) => setFormData((p) => ({ ...p, email: e.target.value.toLowerCase() }))}
                         className={inputClass}
                         placeholder="ornek@email.com"
                         disabled={dis}
@@ -547,7 +668,7 @@ export default function RegisterPage() {
                         className="mt-1 h-4 w-4 rounded border-gray-300 text-[#16B24B] focus:ring-[#16B24B]"
                       />
                       <label htmlFor="kvkk" className="text-sm text-gray-700">
-                        <span className="font-medium">KVKK Aydınlatma Metni</span> onayı {requiredStar}
+                        <a href="/legal/kvkk" target="_blank" className="font-medium text-[#16B24B] hover:text-[#118836] underline">KVKK Aydınlatma Metni</a>&apos;ni okudum ve onaylıyorum {requiredStar}
                       </label>
                     </div>
                     <div className="flex items-start gap-3">
@@ -639,6 +760,7 @@ export default function RegisterPage() {
             </div>
           </div>
         </div>
+        )}
       </main>
 
       <Footer />

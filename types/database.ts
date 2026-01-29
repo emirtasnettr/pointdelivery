@@ -27,13 +27,33 @@ export interface CandidateInfo {
   address: string | null;
   date_of_birth: string | null;
   national_id: string | null;
-  education_level: string | null;
-  experience_years: number;
   skills: string[];
   languages: Array<{ name: string; level: string }>;
+  iban: string | null; // Banka IBAN bilgisi
+  motorcycle_plate: string | null; // Motosiklet Plakası
+  documents_enabled: boolean | null; // Evrak yükleme aktif mi (consultant tarafından açılır)
+  rider_id: string | null; // Rider ID (consultant tarafından girilir)
   created_at: string;
   updated_at: string;
 }
+
+// Belge türleri
+export type DocumentType = 
+  // Şirketi olmayanlar için
+  | 'MUVAFAKATNAME'
+  | 'KIMLIK_ON'
+  | 'SOZLESME_1' | 'SOZLESME_2' | 'SOZLESME_3' | 'SOZLESME_4' | 'SOZLESME_5' | 'SOZLESME_6' | 'SOZLESME_7'
+  | 'ISG_EVRAKLARI_1' | 'ISG_EVRAKLARI_2' | 'ISG_EVRAKLARI_3' | 'ISG_EVRAKLARI_4' | 'ISG_EVRAKLARI_5'
+  | 'RUHSAT'
+  | 'ADLI_SICIL'
+  | 'TASIT_KART_DEKONT'
+  | 'IKAMETGAH'
+  | 'EHLIYETLI_SELFIE'
+  | 'EKIPMANLI_FOTO'
+  // Şirketi olanlar için
+  | 'VERGI_LEVHASI'
+  | 'P1_BELGESI'
+  | 'BIMASRAF_ENTEGRASYONU';
 
 export interface Document {
   id: string;

@@ -208,19 +208,6 @@ export default async function ProfilePage() {
                       <p className="text-gray-900">{candidateInfo?.address || 'Belirtilmemiş'}</p>
                     </div>
 
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Eğitim Seviyesi
-                      </label>
-                      <p className="text-gray-900">{candidateInfo?.education_level || 'Belirtilmemiş'}</p>
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Deneyim Yılı
-                      </label>
-                      <p className="text-gray-900">{candidateInfo?.experience_years || 0} yıl</p>
-                    </div>
                   </div>
 
                   <div>

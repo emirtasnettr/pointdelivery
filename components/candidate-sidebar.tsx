@@ -72,14 +72,14 @@ export default function CandidateSidebar() {
         }`}
       >
         {/* Logo */}
-        <div className="h-20 flex items-center px-6 border-b border-gray-200">
+        <Link href="/dashboard/candidate/profile" className="h-20 flex items-center px-6 border-b border-gray-200 hover:bg-gray-50 transition-colors">
           <img
             src="https://i.hizliresim.com/nvytmdi.png"
             alt="JobulAI Logo"
             className="h-8 w-auto"
             loading="eager"
           />
-        </div>
+        </Link>
 
         {/* Navigation */}
         <nav className="flex-1 px-4 py-6 space-y-2">

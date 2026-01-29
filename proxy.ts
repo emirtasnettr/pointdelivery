@@ -19,6 +19,7 @@ export async function proxy(request: NextRequest) {
     pathname.startsWith('/features') ||
     pathname.startsWith('/how-it-works') ||
     pathname.startsWith('/why-jobulai') ||
+    pathname.startsWith('/legal') ||
     pathname.startsWith('/test-db');
 
   // Ana sayfa herkese açık (giriş yapmış kullanıcılar da görebilir)

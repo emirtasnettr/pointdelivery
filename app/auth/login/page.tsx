@@ -61,7 +61,18 @@ function LoginPageContent() {
       });
 
       if (signInError) {
-        setError(signInError.message || 'Giriş yapılamadı');
+        // Hata mesajlarını Türkçeleştir
+        let errorMessage = 'Giriş yapılamadı';
+        if (signInError.message === 'Invalid login credentials') {
+          errorMessage = 'E-posta adresi veya şifre hatalı';
+        } else if (signInError.message === 'Email not confirmed') {
+          errorMessage = 'E-posta adresiniz henüz doğrulanmamış. Lütfen mail kutunuzu kontrol edin.';
+        } else if (signInError.message === 'User not found') {
+          errorMessage = 'Bu e-posta adresiyle kayıtlı kullanıcı bulunamadı';
+        } else if (signInError.message) {
+          errorMessage = signInError.message;
+        }
+        setError(errorMessage);
         setLoading(false);
         return;
       }

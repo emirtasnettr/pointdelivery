@@ -186,25 +186,14 @@ export default function ApplicationDecision({
     }
   };
 
+  // NEW_APPLICATION: Aday henüz başvurusunu göndermedi
   if (application.applicationStatus === 'NEW_APPLICATION') {
     return (
-      <div className="flex items-center gap-2">
-        <button
-          onClick={handleStartEvaluation}
-          disabled={loading}
-          className="px-4 py-2 bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded-lg text-xs font-semibold hover:from-blue-600 hover:to-indigo-700 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed shadow-md hover:shadow-lg flex items-center justify-center gap-1.5 transform hover:scale-105"
-          title="Başvuruyu Değerlendirmeye Al"
-        >
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
-          </svg>
-          <span>Değerlendirmeye Al</span>
-        </button>
-        {error && (
-          <div className="text-xs text-red-600 mt-1 text-center">
-            {error}
-          </div>
-        )}
+      <div className="inline-flex items-center gap-2 px-4 py-2 bg-gray-100 text-gray-600 rounded-lg text-xs font-semibold border border-gray-200">
+        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+        <span>Aday Başvurusunu Henüz Göndermedi</span>
       </div>
     );
   }

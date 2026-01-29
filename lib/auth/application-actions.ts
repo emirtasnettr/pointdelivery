@@ -44,21 +44,46 @@ export async function submitApplicationForEvaluation(profileId: string) {
       .eq('profile_id', profileId)
       .single<CandidateInfo>();
 
-    if (!candidateInfo) {
-      return { error: 'Lütfen önce aday bilgilerinizi tamamlayın' };
-    }
+    // Vehicle info'yu da al (has_company kontrolü için)
+    const { data: vehicleInfo } = await supabase
+      .from('vehicle_info')
+      .select('*')
+      .eq('profile_id', profileId)
+      .maybeSingle();
 
-    // Zorunlu alanlar kontrolü
-    const requiredFields = {
-      phone: candidateInfo.phone,
-      national_id: candidateInfo.national_id,
-      date_of_birth: candidateInfo.date_of_birth,
-      address: candidateInfo.address,
+    // Kayıt sırasında girilen bilgileri user_metadata'dan al (fallback)
+    const userMetadata = user.user_metadata || {};
+    
+    // Boolean değerleri düzgün parse et
+    const parseBoolean = (val: any): boolean => {
+      return val === true || val === 'true';
     };
+    
+    const hasCompany = parseBoolean(vehicleInfo?.has_company) || parseBoolean(userMetadata.has_company);
+    const documentsEnabled = parseBoolean(candidateInfo?.documents_enabled);
 
-    for (const [field, value] of Object.entries(requiredFields)) {
-      if (!value || value === '') {
-        return { error: `Lütfen ${field === 'phone' ? 'telefon numarası' : field === 'national_id' ? 'TC Kimlik No' : field === 'date_of_birth' ? 'doğum tarihi' : 'adres'} bilgisini girin` };
+    // Zorunlu alanlar kontrolü - Evraklar aktif edildiyse tüm alanlar zorunlu
+    if (documentsEnabled) {
+      if (!candidateInfo) {
+        return { error: 'Lütfen önce aday bilgilerinizi tamamlayın' };
+      }
+
+      const requiredFields = {
+        phone: candidateInfo.phone,
+        national_id: candidateInfo.national_id,
+        date_of_birth: candidateInfo.date_of_birth,
+        address: candidateInfo.address,
+      };
+
+      for (const [field, value] of Object.entries(requiredFields)) {
+        if (!value || value === '') {
+          return { error: `Lütfen ${field === 'phone' ? 'telefon numarası' : field === 'national_id' ? 'TC Kimlik No' : field === 'date_of_birth' ? 'doğum tarihi' : 'adres'} bilgisini girin` };
+        }
+      }
+    } else {
+      // Evraklar aktif değilse sadece telefon zorunlu
+      if (!candidateInfo?.phone || candidateInfo.phone.trim() === '') {
+        return { error: 'Lütfen telefon numarası bilgisini girin' };
       }
     }
 
@@ -70,26 +95,85 @@ export async function submitApplicationForEvaluation(profileId: string) {
 
     const typedDocuments = (documents || []) as Document[];
     
-    // Kayıt sırasında girilen bilgileri user_metadata'dan al
-    const userMetadata = user.user_metadata || {};
-    const hasP1 = userMetadata.has_p1 === true;
-    const hasCompany = userMetadata.has_company === true;
-    
     // Dinamik olarak zorunlu belge tiplerini oluştur
-    const requiredDocumentTypes: string[] = [
-      'EHLIYET',
-      'RUHSAT',
-      ...(hasP1 ? ['P1_BELGESI'] : []),
-      ...(hasCompany ? ['VERGI_LEVHASI'] : []),
-    ];
+    // documents_enabled durumuna göre belge listesi değişir
+    let requiredDocumentTypes: string[];
+    
+    if (hasCompany) {
+      // Şirketi olanlar
+      if (documentsEnabled) {
+        requiredDocumentTypes = [
+          'VERGI_LEVHASI',
+          'ADLI_SICIL',
+          'P1_BELGESI',
+          'BIMASRAF_ENTEGRASYONU',
+          'EHLIYETLI_SELFIE',
+          'EKIPMANLI_FOTO',
+        ];
+      } else {
+        requiredDocumentTypes = [
+          'VERGI_LEVHASI',
+          'P1_BELGESI',
+          'EHLIYETLI_SELFIE',
+          'EKIPMANLI_FOTO',
+        ];
+      }
+    } else {
+      // Şirketi olmayanlar
+      if (documentsEnabled) {
+        requiredDocumentTypes = [
+          'MUVAFAKATNAME',
+          'KIMLIK_ON',
+          'SOZLESME_1', 'SOZLESME_2', 'SOZLESME_3', 'SOZLESME_4', 'SOZLESME_5', 'SOZLESME_6', 'SOZLESME_7',
+          'ISG_EVRAKLARI_1', 'ISG_EVRAKLARI_2', 'ISG_EVRAKLARI_3', 'ISG_EVRAKLARI_4', 'ISG_EVRAKLARI_5',
+          'RUHSAT',
+          'ADLI_SICIL',
+          'TASIT_KART_DEKONT',
+          'IKAMETGAH',
+          'EHLIYETLI_SELFIE',
+          'EKIPMANLI_FOTO',
+        ];
+      } else {
+        // Evraklar aktif değilse sadece 2 belge zorunlu
+        requiredDocumentTypes = [
+          'EHLIYETLI_SELFIE',
+          'EKIPMANLI_FOTO',
+        ];
+      }
+    }
     
     const uploadedDocumentTypes = typedDocuments.map((doc) => doc.document_type);
 
     const docLabels: Record<string, string> = {
-      P1_BELGESI: 'P1 Belgesi',
-      EHLIYET: 'Ehliyet',
-      RUHSAT: 'Ruhsat',
+      // Şirketi olmayanlar için
+      MUVAFAKATNAME: 'Muvafakatname',
+      KIMLIK_ON: 'Kimlik Ön Yüzü',
+      // Sözleşme sayfaları
+      SOZLESME_1: 'Sözleşme 1. Sayfa',
+      SOZLESME_2: 'Sözleşme 2. Sayfa',
+      SOZLESME_3: 'Sözleşme 3. Sayfa',
+      SOZLESME_4: 'Sözleşme 4. Sayfa',
+      SOZLESME_5: 'Sözleşme 5. Sayfa',
+      SOZLESME_6: 'Sözleşme 6. Sayfa',
+      SOZLESME_7: 'Sözleşme 7. Sayfa',
+      // İSG Evrakları sayfaları
+      ISG_EVRAKLARI_1: 'İSG Evrakları 1. Sayfa',
+      ISG_EVRAKLARI_2: 'İSG Evrakları 2. Sayfa',
+      ISG_EVRAKLARI_3: 'İSG Evrakları 3. Sayfa',
+      ISG_EVRAKLARI_4: 'İSG Evrakları 4. Sayfa',
+      ISG_EVRAKLARI_5: 'İSG Evrakları 5. Sayfa',
+      RUHSAT: 'Ruhsat Fotoğrafı',
+      ADLI_SICIL: 'Adli Sicil Kaydı',
+      TASIT_KART_DEKONT: 'Taşıt Kart Ücreti Dekont',
+      IKAMETGAH: 'İkametgah',
+      EHLIYETLI_SELFIE: 'Ehliyetli Selfie',
+      EKIPMANLI_FOTO: 'Ekipmanlı Fotoğraf',
+      // Şirketi olanlar için
       VERGI_LEVHASI: 'Vergi Levhası',
+      P1_BELGESI: 'P1 Belgesi',
+      BIMASRAF_ENTEGRASYONU: 'BiMasraf Entegrasyonu',
+      // Eski türler (geriye uyumluluk)
+      EHLIYET: 'Ehliyet',
       KIMLIK: 'Kimlik Belgesi',
       RESIDENCE: 'İkametgah',
       POLICE: 'Sabıka Kaydı',

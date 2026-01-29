@@ -304,7 +304,7 @@ export default function CandidateJobsPage() {
       <header className="sticky top-0 z-30 bg-white/80 backdrop-blur-md border-b border-gray-100">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
           <div className="flex items-center gap-4">
-            <Link href="/dashboard/candidate">
+            <Link href="/dashboard/candidate/profile">
               <button className="flex items-center gap-2 text-gray-600 hover:text-gray-900 transition-colors">
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
@@ -312,17 +312,19 @@ export default function CandidateJobsPage() {
                 <span className="text-sm font-medium">Geri</span>
               </button>
             </Link>
-            {siteLogo ? (
-              <img
-                src={siteLogo}
-                alt="Site Logo"
-                className="h-10 w-auto max-w-[200px] object-contain"
-              />
-            ) : (
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-400 to-indigo-500 flex items-center justify-center">
-                <span className="text-lg font-semibold text-white">J</span>
-              </div>
-            )}
+            <Link href="/dashboard/candidate/profile" className="flex items-center">
+              {siteLogo ? (
+                <img
+                  src={siteLogo}
+                  alt="Site Logo"
+                  className="h-10 w-auto max-w-[200px] object-contain"
+                />
+              ) : (
+                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-400 to-indigo-500 flex items-center justify-center">
+                  <span className="text-lg font-semibold text-white">J</span>
+                </div>
+              )}
+            </Link>
           </div>
 
           {/* User Profile Dropdown */}

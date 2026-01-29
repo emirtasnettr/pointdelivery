@@ -371,24 +371,6 @@ export default function CandidateDetailPage({
                 </div>
               )}
 
-              {candidateInfo.education_level && (
-                <div className="p-4 rounded-lg bg-gray-50">
-                  <label className="block text-xs font-medium text-gray-500 mb-2 uppercase tracking-wider">
-                    Eğitim Seviyesi
-                  </label>
-                  <p className="text-gray-900 font-medium">{candidateInfo.education_level}</p>
-                </div>
-              )}
-
-              {candidateInfo.experience_years !== null && (
-                <div className="p-4 rounded-lg bg-gray-50">
-                  <label className="block text-xs font-medium text-gray-500 mb-2 uppercase tracking-wider">
-                    Deneyim Yılı
-                  </label>
-                  <p className="text-gray-900 font-medium">{candidateInfo.experience_years} yıl</p>
-                </div>
-              )}
-
               {candidateInfo.skills && Array.isArray(candidateInfo.skills) && candidateInfo.skills.length > 0 && (
                 <div className="md:col-span-2 p-4 rounded-lg bg-gray-50">
                   <label className="block text-xs font-medium text-gray-500 mb-3 uppercase tracking-wider">

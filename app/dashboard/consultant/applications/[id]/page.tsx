@@ -14,8 +14,6 @@ import DocumentControl from '@/components/document-control';
 import ApplicationDecisionNew from '@/components/application-decision-new';
 import DeleteApplicationButton from '@/components/delete-application-button';
 
-type DocumentType = 'CV' | 'POLICE' | 'RESIDENCE' | 'KIMLIK' | 'DIPLOMA';
-
 interface Document {
   id: string;
   document_type: string;
@@ -38,10 +36,21 @@ interface CandidateInfo {
   national_id: string | null;
   address: string | null;
   date_of_birth: string | null;
-  education_level: string | null;
-  experience_years: number | null;
   skills: string[] | null;
   languages: any[] | null;
+  documents_enabled: boolean | null;
+  rider_id: string | null;
+  iban: string | null;
+  motorcycle_plate: string | null;
+}
+
+interface VehicleInfo {
+  id: string;
+  profile_id: string;
+  vehicle_type: string | null;
+  vehicle_subtype: string | null;
+  has_company: boolean | null;
+  has_p1: boolean | null;
 }
 
 interface Profile {
@@ -56,6 +65,7 @@ interface Profile {
 interface Application {
   profile: Profile;
   candidateInfo: CandidateInfo | null;
+  vehicleInfo: VehicleInfo | null;
   documents: Document[];
   applicationStatus: 'NEW_APPLICATION' | 'EVALUATION' | 'APPROVED' | 'REJECTED' | 'UPDATE_REQUIRED';
   middleman: { id: string; full_name: string | null } | null;
@@ -71,11 +81,13 @@ export default function ApplicationDetailPage() {
   const [application, setApplication] = useState<Application | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [profile, setProfile] = useState<any>(null);
-  const [siteLogo, setSiteLogo] = useState<string | null>(null);
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const [candidateMenuOpen, setCandidateMenuOpen] = useState(false);
   const candidateMenuRef = useRef<HTMLDivElement>(null);
+  const [enablingDocuments, setEnablingDocuments] = useState(false);
+  const [showRiderIdModal, setShowRiderIdModal] = useState(false);
+  const [riderId, setRiderId] = useState('');
 
   // Tüm belgelerin reddedilip reddedilmediğini kontrol et
   const canDelete = application ? 
@@ -108,20 +120,6 @@ export default function ApplicationDetailPage() {
 
         setProfile(consultantProfile);
 
-        // Site logo'yu yükle
-        try {
-          const { data: settings, error: settingsError } = await supabase
-            .from('site_settings')
-            .select('logo_url')
-            .maybeSingle();
-          
-          if (!settingsError && settings?.logo_url) {
-            setSiteLogo(settings.logo_url);
-          }
-        } catch (err) {
-          console.log('Logo yüklenemedi:', err);
-        }
-
         // Aday profilini al
         const { data: candidateProfile } = await supabase
           .from('profiles')
@@ -142,6 +140,13 @@ export default function ApplicationDetailPage() {
           .select('*')
           .eq('profile_id', profileId)
           .single();
+
+        // Araç bilgilerini al
+        const { data: vehicleInfo } = await supabase
+          .from('vehicle_info')
+          .select('*')
+          .eq('profile_id', profileId)
+          .maybeSingle();
 
         // Tüm belgeleri al (NULL, APPROVED, REJECTED)
         const { data: documents } = await supabase
@@ -171,6 +176,7 @@ export default function ApplicationDetailPage() {
         const applicationData = {
           profile: candidateProfile,
           candidateInfo: candidateInfo || null,
+          vehicleInfo: vehicleInfo || null,
           documents: documents || [],
           applicationStatus,
           middleman,
@@ -373,22 +379,15 @@ export default function ApplicationDetailPage() {
   const documentTypes: DocumentType[] = ['CV', 'POLICE', 'RESIDENCE', 'KIMLIK', 'DIPLOMA'];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-blue-50/30">
+    <div className="min-h-screen bg-white text-gray-900">
       {/* Header */}
-      <header className="sticky top-0 z-30 bg-white/80 backdrop-blur-md border-b border-gray-100">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+      <header className="sticky top-0 z-50 border-b border-gray-100 bg-white/90 backdrop-blur">
+        <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
           <div className="flex items-center gap-6">
-            {siteLogo ? (
-              <img
-                src={siteLogo}
-                alt="Site Logo"
-                className="h-10 w-auto max-w-[200px] object-contain"
-              />
-            ) : (
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-400 to-indigo-500 flex items-center justify-center">
-                <span className="text-lg font-semibold text-white">J</span>
-              </div>
-            )}
+            <Link href="/dashboard/consultant" className="inline-flex items-center">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src="/pointdlogo.webp" alt="Point Delivery" className="w-auto" style={{ height: '42px', width: 'auto' }} />
+            </Link>
 
             {/* Aday Yönetimi Dropdown */}
             <div className="relative" ref={candidateMenuRef}>
@@ -415,8 +414,8 @@ export default function ApplicationDetailPage() {
                       onClick={() => setCandidateMenuOpen(false)}
                       className="w-full px-3 py-2.5 text-left flex items-center gap-2.5 hover:bg-gray-50 transition-colors"
                     >
-                      <div className="w-7 h-7 rounded-md bg-blue-50 flex items-center justify-center">
-                        <svg className="w-4 h-4 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <div className="w-7 h-7 rounded-md bg-[#16B24B]/10 flex items-center justify-center">
+                        <svg className="w-4 h-4 text-[#16B24B]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
                         </svg>
                       </div>
@@ -471,7 +470,7 @@ export default function ApplicationDetailPage() {
               onClick={() => setDropdownOpen(!dropdownOpen)}
               className="flex items-center gap-2.5 px-3 py-1.5 bg-white rounded-lg border border-gray-200 hover:border-gray-300 transition-colors"
             >
-              <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-400 to-indigo-500 flex items-center justify-center">
+              <div className="w-8 h-8 rounded-lg bg-[#16B24B] flex items-center justify-center">
                 <span className="text-white text-xs font-medium">
                   {profile?.full_name?.charAt(0) || 'C'}
                 </span>
@@ -494,8 +493,8 @@ export default function ApplicationDetailPage() {
                     }}
                     className="w-full px-3 py-2.5 text-left flex items-center gap-2.5 hover:bg-gray-50 transition-colors"
                   >
-                    <div className="w-7 h-7 rounded-md bg-blue-50 flex items-center justify-center">
-                      <svg className="w-4 h-4 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <div className="w-7 h-7 rounded-md bg-[#16B24B]/10 flex items-center justify-center">
+                      <svg className="w-4 h-4 text-[#16B24B]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                       </svg>
@@ -557,6 +556,64 @@ export default function ApplicationDetailPage() {
 
             {/* Sağ: Karar Butonları ve Sil Butonu */}
             <div className="flex items-center gap-2 flex-shrink-0">
+              {/* Evrakları Aktif Et Butonu */}
+              {!application.candidateInfo?.documents_enabled && (
+                <button
+                  onClick={() => {
+                    setRiderId('');
+                    setShowRiderIdModal(true);
+                  }}
+                  className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-emerald-500 to-green-600 text-white rounded-lg font-semibold text-sm hover:shadow-lg hover:scale-[1.02] transition-all"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  <span>Evrakları Aktif Et</span>
+                </button>
+              )}
+              {application.candidateInfo?.documents_enabled && (
+                <button
+                  onClick={async () => {
+                    setEnablingDocuments(true);
+                    try {
+                      const { error } = await supabase
+                        .from('candidate_info')
+                        .update({ documents_enabled: false })
+                        .eq('profile_id', application.profile.id);
+
+                      if (error) throw error;
+
+                      // Sayfayı yenile
+                      window.location.reload();
+                    } catch (err: any) {
+                      console.error('Evrak deaktif hatası:', err);
+                      alert('Hata: ' + err.message);
+                    } finally {
+                      setEnablingDocuments(false);
+                    }
+                  }}
+                  disabled={enablingDocuments}
+                  className="inline-flex items-center gap-2 px-4 py-2 bg-green-100 text-green-700 rounded-lg font-semibold text-sm border border-green-200 hover:bg-red-50 hover:text-red-700 hover:border-red-200 transition-all disabled:opacity-50"
+                  title="Evrakları deaktif etmek için tıklayın"
+                >
+                  {enablingDocuments ? (
+                    <>
+                      <svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      </svg>
+                      <span>İşleniyor...</span>
+                    </>
+                  ) : (
+                    <>
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                      </svg>
+                      <span>Evraklar Aktif</span>
+                    </>
+                  )}
+                </button>
+              )}
               <ApplicationDecisionNew
                 application={application}
                 onUpdate={handleApplicationUpdate}
@@ -601,31 +658,39 @@ export default function ApplicationDetailPage() {
                     Kişisel Bilgiler
                   </h3>
                   <div className="grid grid-cols-2 gap-3 text-sm">
-                    <div>
+                    <div className="col-span-2">
                       <label className="block text-xs font-semibold text-blue-700 uppercase tracking-wide mb-1">
                         Ad Soyad
                       </label>
-                      <p className="text-gray-900 font-bold">
+                      <p className="text-gray-900 font-bold text-base">
                         {application.profile.full_name || '-'}
                       </p>
                     </div>
-                    {application.candidateInfo?.date_of_birth && (
-                      <div>
+                    <div>
+                      <label className="block text-xs font-semibold text-blue-700 uppercase tracking-wide mb-1">
+                        TC Kimlik No
+                      </label>
+                      <p className="text-gray-900 font-medium font-mono">
+                        {application.candidateInfo?.national_id || <span className="text-gray-400 italic">Belirtilmemiş</span>}
+                      </p>
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold text-blue-700 uppercase tracking-wide mb-1">
+                        Doğum Tarihi
+                      </label>
+                      <p className="text-gray-900 font-medium">
+                        {application.candidateInfo?.date_of_birth 
+                          ? new Date(application.candidateInfo.date_of_birth).toLocaleDateString('tr-TR')
+                          : <span className="text-gray-400 italic">Belirtilmemiş</span>}
+                      </p>
+                    </div>
+                    {application.candidateInfo?.rider_id && (
+                      <div className="col-span-2 mt-2 pt-2 border-t border-blue-200">
                         <label className="block text-xs font-semibold text-blue-700 uppercase tracking-wide mb-1">
-                          Doğum Tarihi
+                          YS Rider ID
                         </label>
-                        <p className="text-gray-900 font-medium">
-                          {new Date(application.candidateInfo.date_of_birth).toLocaleDateString('tr-TR')}
-                        </p>
-                      </div>
-                    )}
-                    {application.candidateInfo?.national_id && (
-                      <div>
-                        <label className="block text-xs font-semibold text-blue-700 uppercase tracking-wide mb-1">
-                          TC Kimlik No
-                        </label>
-                        <p className="text-gray-900 font-medium font-mono">
-                          {application.candidateInfo.national_id}
+                        <p className="text-gray-900 font-bold text-lg bg-blue-100 px-3 py-1 rounded-lg inline-block">
+                          {application.candidateInfo.rider_id}
                         </p>
                       </div>
                     )}
@@ -640,149 +705,234 @@ export default function ApplicationDetailPage() {
                     </svg>
                     İletişim Bilgileri
                   </h3>
-                  <div className="space-y-2 text-sm">
-                    {application.candidateInfo?.email && (
-                      <div>
-                        <label className="block text-xs font-semibold text-green-700 uppercase tracking-wide mb-1">
-                          E-posta
-                        </label>
-                        <p className="text-gray-900 font-medium break-all">
-                          {application.candidateInfo.email}
-                        </p>
-                      </div>
-                    )}
-                    {application.candidateInfo?.phone && (
-                      <div>
-                        <label className="block text-xs font-semibold text-green-700 uppercase tracking-wide mb-1">
-                          Telefon
-                        </label>
-                        <p className="text-gray-900 font-medium">
-                          {application.candidateInfo.phone}
-                        </p>
-                      </div>
-                    )}
-                    {application.candidateInfo?.city && application.candidateInfo?.district && (
-                      <div>
-                        <label className="block text-xs font-semibold text-green-700 uppercase tracking-wide mb-1">
-                          Konum
-                        </label>
-                        <p className="text-gray-900 font-medium">
-                          {application.candidateInfo.city} / {application.candidateInfo.district}
-                        </p>
-                      </div>
-                    )}
-                    {application.candidateInfo?.address && (
-                      <div>
-                        <label className="block text-xs font-semibold text-green-700 uppercase tracking-wide mb-1">
-                          Adres
-                        </label>
-                        <p className="text-gray-900 text-xs leading-relaxed">
-                          {application.candidateInfo.address}
-                        </p>
-                      </div>
-                    )}
+                  <div className="grid grid-cols-2 gap-3 text-sm">
+                    <div className="col-span-2">
+                      <label className="block text-xs font-semibold text-green-700 uppercase tracking-wide mb-1">
+                        E-posta
+                      </label>
+                      <p className="text-gray-900 font-medium break-all">
+                        {application.candidateInfo?.email || <span className="text-gray-400 italic">Belirtilmemiş</span>}
+                      </p>
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold text-green-700 uppercase tracking-wide mb-1">
+                        Telefon
+                      </label>
+                      <p className="text-gray-900 font-medium">
+                        {application.candidateInfo?.phone || <span className="text-gray-400 italic">Belirtilmemiş</span>}
+                      </p>
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold text-green-700 uppercase tracking-wide mb-1">
+                        İl / İlçe
+                      </label>
+                      <p className="text-gray-900 font-medium">
+                        {application.candidateInfo?.city && application.candidateInfo?.district 
+                          ? `${application.candidateInfo.city} / ${application.candidateInfo.district}`
+                          : <span className="text-gray-400 italic">Belirtilmemiş</span>}
+                      </p>
+                    </div>
+                    <div className="col-span-2">
+                      <label className="block text-xs font-semibold text-green-700 uppercase tracking-wide mb-1">
+                        Adres
+                      </label>
+                      <p className="text-gray-900 text-xs leading-relaxed">
+                        {application.candidateInfo?.address || <span className="text-gray-400 italic">Belirtilmemiş</span>}
+                      </p>
+                    </div>
                   </div>
                 </div>
 
-                {/* Eğitim ve Deneyim */}
-                {(application.candidateInfo?.education_level || (application.candidateInfo && application.candidateInfo.experience_years !== null)) && (
-                  <div className="bg-gradient-to-br from-purple-50 to-pink-50 rounded-xl p-4 border border-purple-100">
-                    <h3 className="text-sm font-bold text-purple-900 mb-3 flex items-center gap-2">
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 14l9-5-9-5-9 5 9 5z" />
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 14l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14z" />
-                      </svg>
-                      Eğitim ve Deneyim
-                    </h3>
-                    <div className="grid grid-cols-2 gap-3 text-sm">
-                      {application.candidateInfo?.education_level && (
-                        <div>
-                          <label className="block text-xs font-semibold text-purple-700 uppercase tracking-wide mb-1">
-                            Eğitim Seviyesi
-                          </label>
-                          <p className="text-gray-900 font-medium">
-                            {application.candidateInfo.education_level}
-                          </p>
-                        </div>
-                      )}
-                      {application.candidateInfo && application.candidateInfo.experience_years !== null && (
-                        <div>
-                          <label className="block text-xs font-semibold text-purple-700 uppercase tracking-wide mb-1">
-                            Deneyim Yılı
-                          </label>
-                          <p className="text-gray-900 font-bold text-lg">
-                            {application.candidateInfo.experience_years} yıl
-                          </p>
-                        </div>
-                      )}
+                {/* Araç ve Belge Bilgileri */}
+                <div className="bg-gradient-to-br from-amber-50 to-orange-50 rounded-xl p-4 border border-amber-100">
+                  <h3 className="text-sm font-bold text-amber-900 mb-3 flex items-center gap-2">
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 17a2 2 0 11-4 0 2 2 0 014 0zM19 17a2 2 0 11-4 0 2 2 0 014 0z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16V6a1 1 0 00-1-1H4a1 1 0 00-1 1v10a1 1 0 001 1h1m8-1a1 1 0 01-1 1H9m4-1V8a1 1 0 011-1h2.586a1 1 0 01.707.293l3.414 3.414a1 1 0 01.293.707V16a1 1 0 01-1 1h-1m-6-1a1 1 0 001 1h1M5 17a2 2 0 104 0m-4 0a2 2 0 114 0m6 0a2 2 0 104 0m-4 0a2 2 0 114 0" />
+                    </svg>
+                    Araç ve Belge Bilgileri
+                  </h3>
+                  <div className="grid grid-cols-2 gap-3 text-sm">
+                    <div>
+                      <label className="block text-xs font-semibold text-amber-700 uppercase tracking-wide mb-1">
+                        Araç Tipi
+                      </label>
+                      <p className="text-gray-900 font-medium">
+                        {application.vehicleInfo?.vehicle_type || <span className="text-gray-400 italic">Belirtilmemiş</span>}
+                      </p>
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold text-amber-700 uppercase tracking-wide mb-1">
+                        Plaka Bilgisi
+                      </label>
+                      <p className="text-gray-900 font-bold font-mono">
+                        {application.candidateInfo?.motorcycle_plate || <span className="text-gray-400 italic font-normal">Belirtilmemiş</span>}
+                      </p>
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold text-amber-700 uppercase tracking-wide mb-1">
+                        Şirket Durumu
+                      </label>
+                      <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-semibold ${
+                        application.vehicleInfo?.has_company === true 
+                          ? 'bg-green-100 text-green-700 border border-green-200' 
+                          : application.vehicleInfo?.has_company === false
+                            ? 'bg-red-100 text-red-700 border border-red-200'
+                            : 'bg-gray-100 text-gray-500 border border-gray-200'
+                      }`}>
+                        {application.vehicleInfo?.has_company === true ? (
+                          <>
+                            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                            </svg>
+                            Şirketi Var
+                          </>
+                        ) : application.vehicleInfo?.has_company === false ? (
+                          <>
+                            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                            </svg>
+                            Bireysel
+                          </>
+                        ) : (
+                          'Belirtilmemiş'
+                        )}
+                      </span>
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold text-amber-700 uppercase tracking-wide mb-1">
+                        P1 Belgesi
+                      </label>
+                      <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-semibold ${
+                        application.vehicleInfo?.has_p1 === true 
+                          ? 'bg-green-100 text-green-700 border border-green-200' 
+                          : application.vehicleInfo?.has_p1 === false
+                            ? 'bg-red-100 text-red-700 border border-red-200'
+                            : 'bg-gray-100 text-gray-500 border border-gray-200'
+                      }`}>
+                        {application.vehicleInfo?.has_p1 === true ? (
+                          <>
+                            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                            </svg>
+                            Var
+                          </>
+                        ) : application.vehicleInfo?.has_p1 === false ? (
+                          <>
+                            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                            Yok
+                          </>
+                        ) : (
+                          'Belirtilmemiş'
+                        )}
+                      </span>
                     </div>
                   </div>
-                )}
+                </div>
 
-                {/* Beceriler */}
-                {application.candidateInfo?.skills && Array.isArray(application.candidateInfo.skills) && application.candidateInfo.skills.length > 0 && (
-                  <div className="bg-gradient-to-br from-orange-50 to-red-50 rounded-xl p-4 border border-orange-100">
-                    <h3 className="text-sm font-bold text-orange-900 mb-3 flex items-center gap-2">
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
-                      </svg>
-                      Beceriler
-                    </h3>
-                    <div className="flex flex-wrap gap-2">
-                      {application.candidateInfo.skills.map((skill: string, index: number) => (
-                        <span
-                          key={index}
-                          className="px-3 py-1.5 bg-gradient-to-r from-orange-500 to-red-500 text-white rounded-lg text-xs font-semibold shadow-sm"
-                        >
-                          {skill}
-                        </span>
-                      ))}
+                {/* Banka Bilgileri */}
+                <div className="bg-gradient-to-br from-violet-50 to-purple-50 rounded-xl p-4 border border-violet-100">
+                  <h3 className="text-sm font-bold text-violet-900 mb-3 flex items-center gap-2">
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+                    </svg>
+                    Banka Bilgileri
+                  </h3>
+                  <div className="space-y-3 text-sm">
+                    <div>
+                      <label className="block text-xs font-semibold text-violet-700 uppercase tracking-wide mb-1">
+                        Alıcı Adı Soyadı
+                      </label>
+                      <p className="text-gray-900 font-medium">
+                        {application.profile.full_name || '-'}
+                      </p>
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold text-violet-700 uppercase tracking-wide mb-1">
+                        Banka Adı
+                      </label>
+                      <p className="text-gray-900 font-medium">
+                        Garanti Bankası
+                      </p>
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold text-violet-700 uppercase tracking-wide mb-1">
+                        IBAN
+                      </label>
+                      <p className="text-gray-900 font-mono text-xs bg-violet-100 px-3 py-2 rounded-lg break-all">
+                        {application.candidateInfo?.iban || <span className="text-gray-400 italic font-sans">Belirtilmemiş</span>}
+                      </p>
                     </div>
                   </div>
-                )}
+                </div>
 
-                {/* Diller */}
-                {application.candidateInfo?.languages && Array.isArray(application.candidateInfo.languages) && application.candidateInfo.languages.length > 0 && (
-                  <div className="bg-gradient-to-br from-teal-50 to-cyan-50 rounded-xl p-4 border border-teal-100">
-                    <h3 className="text-sm font-bold text-teal-900 mb-3 flex items-center gap-2">
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5h12M9 3v2m1.048 9.5A18.022 18.022 0 016.412 9m6.088 9h7M11 21l5-10 5 10M12.751 5C11.783 10.77 8.07 15.61 3 18.129" />
-                      </svg>
-                      Diller
-                    </h3>
-                    <div className="space-y-2">
-                      {application.candidateInfo.languages.map((lang: any, index: number) => (
-                        <div key={index} className="flex items-center justify-between bg-white rounded-lg px-3 py-2 border border-teal-200">
-                          <span className="text-sm font-medium text-gray-900">{lang.name || 'Bilinmeyen Dil'}</span>
-                          {lang.level && (
-                            <span className="px-2 py-0.5 bg-teal-100 text-teal-700 rounded text-xs font-semibold">
-                              {lang.level}
-                            </span>
-                          )}
-                        </div>
-                      ))}
+                {/* Kayıt Bilgileri */}
+                <div className="bg-gradient-to-br from-slate-50 to-gray-50 rounded-xl p-4 border border-slate-200">
+                  <h3 className="text-sm font-bold text-slate-900 mb-3 flex items-center gap-2">
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    Kayıt Bilgileri
+                  </h3>
+                  <div className="grid grid-cols-2 gap-3 text-sm">
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-600 uppercase tracking-wide mb-1">
+                        Kayıt Tarihi
+                      </label>
+                      <p className="text-gray-900 font-medium">
+                        {new Date(application.profile.created_at).toLocaleDateString('tr-TR', {
+                          day: 'numeric',
+                          month: 'long',
+                          year: 'numeric'
+                        })}
+                      </p>
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-600 uppercase tracking-wide mb-1">
+                        Evrak Durumu
+                      </label>
+                      <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-semibold ${
+                        application.candidateInfo?.documents_enabled === true 
+                          ? 'bg-green-100 text-green-700 border border-green-200' 
+                          : 'bg-gray-100 text-gray-500 border border-gray-200'
+                      }`}>
+                        {application.candidateInfo?.documents_enabled === true ? (
+                          <>
+                            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                            Aktif
+                          </>
+                        ) : (
+                          <>
+                            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                            Beklemede
+                          </>
+                        )}
+                      </span>
                     </div>
                   </div>
-                )}
+                </div>
 
                 {/* Aracı Bilgisi (varsa) */}
                 {application.middleman && (
-                  <div className="bg-gradient-to-br from-slate-50 to-gray-50 rounded-xl p-4 border border-slate-200">
-                    <h3 className="text-sm font-bold text-slate-900 mb-3 flex items-center gap-2">
+                  <div className="bg-gradient-to-br from-cyan-50 to-teal-50 rounded-xl p-4 border border-cyan-200">
+                    <h3 className="text-sm font-bold text-cyan-900 mb-3 flex items-center gap-2">
                       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
                       </svg>
-                      Aracı
+                      Aracı Bilgisi
                     </h3>
                     <div className="text-sm">
-                      <label className="block text-xs font-semibold text-slate-600 uppercase tracking-wide mb-1">
+                      <label className="block text-xs font-semibold text-cyan-700 uppercase tracking-wide mb-1">
                         Aracı Ad Soyad
                       </label>
                       <p className="text-gray-900 font-semibold">
                         {application.middleman.full_name || 'Belirtilmemiş'}
-                      </p>
-                      <p className="text-xs text-gray-500 mt-1">
-                        ID: <span className="font-mono">{application.middleman.id.slice(0, 8)}...</span>
                       </p>
                     </div>
                   </div>
@@ -794,66 +944,66 @@ export default function ApplicationDetailPage() {
             <div className="col-span-12 lg:col-span-7 pl-0 lg:pl-6">
               <h2 className="text-lg font-bold text-gray-900 mb-4 pb-2 border-b border-gray-200">
                 Belge Kontrolleri
+                <span className="ml-2 text-sm font-normal text-gray-500">
+                  {application.vehicleInfo?.has_company === true ? '(Şirketi Var)' : '(Şirketi Yok)'}
+                  {application.candidateInfo?.documents_enabled === true && ' - Evraklar Aktif'}
+                </span>
               </h2>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {[
-                  { 
-                    type: 'CV', 
-                    label: 'CV / Özgeçmiş', 
-                    icon: (
-                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                      </svg>
-                    ), 
-                    color: 'blue' 
-                  },
-                  { 
-                    type: 'KIMLIK', 
-                    label: 'Kimlik Belgesi', 
-                    icon: (
-                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V8a2 2 0 00-2-2h-5m-4 0V5a2 2 0 114 0v1m-4 0a2 2 0 104 0m-5 8a2 2 0 100-4 2 2 0 000 4zm0 0c1.306 0 2.417.835 2.83 2M9 14a3.001 3.001 0 00-2.83 2M15 11h3m-3 4h2" />
-                      </svg>
-                    ), 
-                    color: 'indigo' 
-                  },
-                  { 
-                    type: 'POLICE', 
-                    label: 'Sabıka Kaydı', 
-                    icon: (
-                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-                      </svg>
-                    ), 
-                    color: 'purple' 
-                  },
-                  { 
-                    type: 'RESIDENCE', 
-                    label: 'İkametgah Belgesi', 
-                    icon: (
-                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
-                      </svg>
-                    ), 
-                    color: 'green' 
-                  },
-                  { 
-                    type: 'DIPLOMA', 
-                    label: 'Diploma', 
-                    icon: (
-                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 14l9-5-9-5-9 5 9 5z" />
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 14l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14z" />
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 14v6M12 8v6" />
-                      </svg>
-                    ), 
-                    color: 'amber' 
-                  },
-                ].map((docType) => {
-                  const document = application.documents.find(
-                    (doc) => doc.document_type === docType.type
-                  );
+                {(() => {
+                  // Belge listesini has_company ve documents_enabled durumuna göre oluştur
+                  const hasCompany = application.vehicleInfo?.has_company === true;
+                  const documentsEnabled = application.candidateInfo?.documents_enabled === true;
+                  
+                  type DocConfig = { type: string; label: string; color: string };
+                  let documentTypes: DocConfig[] = [];
+                  
+                  if (hasCompany) {
+                    // Şirketi olanlar - Temel belgeler
+                    documentTypes = [
+                      { type: 'VERGI_LEVHASI', label: 'Vergi Levhası', color: 'amber' },
+                      { type: 'P1_BELGESI', label: 'P1 Belgesi', color: 'blue' },
+                      { type: 'EHLIYETLI_SELFIE', label: 'Ehliyetli Selfie', color: 'pink' },
+                      { type: 'EKIPMANLI_FOTO', label: 'Ekipmanlı Fotoğraf', color: 'orange' },
+                    ];
+                    // Evraklar aktifse ek belgeler
+                    if (documentsEnabled) {
+                      documentTypes.push(
+                        { type: 'ADLI_SICIL', label: 'Adli Sicil Kaydı', color: 'purple' },
+                        { type: 'BIMASRAF_ENTEGRASYONU', label: 'BiMasraf Entegrasyonu', color: 'indigo' },
+                      );
+                    }
+                  } else {
+                    // Şirketi olmayanlar - Temel belgeler
+                    documentTypes = [
+                      { type: 'EHLIYETLI_SELFIE', label: 'Ehliyetli Selfie', color: 'pink' },
+                      { type: 'EKIPMANLI_FOTO', label: 'Ekipmanlı Fotoğraf', color: 'orange' },
+                    ];
+                    // Evraklar aktifse ek belgeler
+                    if (documentsEnabled) {
+                      documentTypes.push(
+                        { type: 'MUVAFAKATNAME', label: 'Muvafakatname', color: 'blue' },
+                        { type: 'KIMLIK_ON', label: 'Kimlik Ön Yüzü', color: 'indigo' },
+                        { type: 'SOZLESME_1', label: 'Sözleşme 1. Sayfa', color: 'cyan' },
+                        { type: 'SOZLESME_2', label: 'Sözleşme 2. Sayfa', color: 'cyan' },
+                        { type: 'SOZLESME_3', label: 'Sözleşme 3. Sayfa', color: 'cyan' },
+                        { type: 'SOZLESME_4', label: 'Sözleşme 4. Sayfa', color: 'cyan' },
+                        { type: 'SOZLESME_5', label: 'Sözleşme 5. Sayfa', color: 'cyan' },
+                        { type: 'SOZLESME_6', label: 'Sözleşme 6. Sayfa', color: 'cyan' },
+                        { type: 'SOZLESME_7', label: 'Sözleşme 7. Sayfa', color: 'cyan' },
+                        { type: 'ISG_EVRAKLARI_1', label: 'İSG Evrakları 1. Sayfa', color: 'teal' },
+                        { type: 'ISG_EVRAKLARI_2', label: 'İSG Evrakları 2. Sayfa', color: 'teal' },
+                        { type: 'ISG_EVRAKLARI_3', label: 'İSG Evrakları 3. Sayfa', color: 'teal' },
+                        { type: 'ISG_EVRAKLARI_4', label: 'İSG Evrakları 4. Sayfa', color: 'teal' },
+                        { type: 'ISG_EVRAKLARI_5', label: 'İSG Evrakları 5. Sayfa', color: 'teal' },
+                        { type: 'RUHSAT', label: 'Ruhsat Fotoğrafı', color: 'amber' },
+                        { type: 'ADLI_SICIL', label: 'Adli Sicil Kaydı', color: 'purple' },
+                        { type: 'TASIT_KART_DEKONT', label: 'Taşıt Kart Ücreti Dekont', color: 'green' },
+                        { type: 'IKAMETGAH', label: 'İkametgah', color: 'emerald' },
+                      );
+                    }
+                  }
                   
                   const getStatusColor = (status: string | null | undefined) => {
                     if (!status || status === null) {
@@ -923,94 +1073,209 @@ export default function ApplicationDetailPage() {
                     }
                   };
 
-                  const colorClasses = {
+                  const colorClasses: Record<string, string> = {
                     blue: 'from-blue-100 to-blue-200 border-blue-300',
                     indigo: 'from-indigo-100 to-indigo-200 border-indigo-300',
                     purple: 'from-purple-100 to-purple-200 border-purple-300',
                     green: 'from-green-100 to-green-200 border-green-300',
                     amber: 'from-amber-100 to-amber-200 border-amber-300',
+                    pink: 'from-pink-100 to-pink-200 border-pink-300',
+                    orange: 'from-orange-100 to-orange-200 border-orange-300',
+                    cyan: 'from-cyan-100 to-cyan-200 border-cyan-300',
+                    teal: 'from-teal-100 to-teal-200 border-teal-300',
+                    emerald: 'from-emerald-100 to-emerald-200 border-emerald-300',
                   };
 
-                  return (
-                    <div
-                      key={docType.type}
-                      className={`rounded-xl border p-4 shadow-sm hover:shadow-md transition-all duration-200 ${getCardBackgroundColor(document?.status)}`}
-                    >
-                      <div className="flex items-center justify-between mb-3">
-                        <div className="flex items-center gap-3">
-                          <div className={`w-10 h-10 rounded-lg bg-gradient-to-br ${colorClasses[docType.color as keyof typeof colorClasses]} flex items-center justify-center flex-shrink-0`}>
-                            <div className="text-gray-600">
-                              {docType.icon}
+                  return documentTypes.map((docType) => {
+                    const document = application.documents.find(
+                      (doc) => doc.document_type === docType.type
+                    );
+
+                    return (
+                      <div
+                        key={docType.type}
+                        className={`rounded-xl border p-4 shadow-sm hover:shadow-md transition-all duration-200 ${getCardBackgroundColor(document?.status)}`}
+                      >
+                        <div className="flex items-center justify-between mb-3">
+                          <div className="flex items-center gap-3">
+                            <div className={`w-10 h-10 rounded-lg bg-gradient-to-br ${colorClasses[docType.color] || colorClasses.blue} flex items-center justify-center flex-shrink-0`}>
+                              <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                              </svg>
+                            </div>
+                            <div>
+                              <h4 className="font-semibold text-gray-900 text-sm">
+                                {docType.label}
+                              </h4>
                             </div>
                           </div>
-                          <div>
-                            <h4 className="font-semibold text-gray-900 text-sm">
-                              {docType.label}
-                            </h4>
-                          </div>
+                          {document ? (
+                            <div className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-medium ${getStatusColor(document.status)}`}>
+                              {getStatusIcon(document.status)}
+                              <span>{getStatusText(document.status)}</span>
+                            </div>
+                          ) : (
+                            <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md border border-gray-200 bg-gray-50 text-gray-500 text-xs font-medium">
+                              <span>Yok</span>
+                            </div>
+                          )}
                         </div>
+
                         {document ? (
-                          <div className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-medium ${getStatusColor(document.status)}`}>
-                            {getStatusIcon(document.status)}
-                            <span>{getStatusText(document.status)}</span>
+                          <div className="space-y-2">
+                            <button
+                              onClick={async () => {
+                                try {
+                                  const { data, error } = await supabase.storage
+                                    .from('documents')
+                                    .createSignedUrl(document.file_path, 3600);
+                                  
+                                  if (error) throw error;
+                                  
+                                  if (data?.signedUrl) {
+                                    window.open(data.signedUrl, '_blank');
+                                  }
+                                } catch (err: any) {
+                                  console.error('Belge görüntüleme hatası:', err);
+                                }
+                              }}
+                              className="text-xs text-blue-600 hover:text-blue-700 hover:underline font-medium truncate w-full text-left"
+                              title={document.file_name}
+                            >
+                              {document.file_name}
+                            </button>
+                            <div className="flex items-center gap-3 text-xs text-gray-500">
+                              <span>{new Date(document.created_at).toLocaleDateString('tr-TR')}</span>
+                            </div>
                           </div>
                         ) : (
-                          <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md border border-gray-200 bg-gray-50 text-gray-500 text-xs font-medium">
-                            <span>Yok</span>
+                          <div className="text-sm text-gray-500 italic text-center py-2">
+                            Belge yüklenmemiş
                           </div>
                         )}
-                      </div>
 
-                      {document ? (
-                        <div className="space-y-2">
-                          <button
-                            onClick={async () => {
-                              try {
-                                const { data, error } = await supabase.storage
-                                  .from('documents')
-                                  .createSignedUrl(document.file_path, 3600);
-                                
-                                if (error) throw error;
-                                
-                                if (data?.signedUrl) {
-                                  window.open(data.signedUrl, '_blank');
-                                }
-                              } catch (err: any) {
-                                console.error('Belge görüntüleme hatası:', err);
-                              }
-                            }}
-                            className="text-xs text-blue-600 hover:text-blue-700 hover:underline font-medium truncate w-full text-left"
-                            title={document.file_name}
-                          >
-                            {document.file_name}
-                          </button>
-                          <div className="flex items-center gap-3 text-xs text-gray-500">
-                            <span>{new Date(document.created_at).toLocaleDateString('tr-TR')}</span>
-                          </div>
+                        <div className="mt-3">
+                          <DocumentControl
+                            documentType={docType.type}
+                            document={document}
+                            profileId={application.profile.id}
+                            onUpdate={handleDocumentUpdate}
+                            applicationStatus={application.applicationStatus}
+                          />
                         </div>
-                      ) : (
-                        <div className="text-sm text-gray-500 italic text-center py-2">
-                          Belge yüklenmemiş
-                        </div>
-                      )}
-
-                      <div className="mt-3">
-                        <DocumentControl
-                          documentType={docType.type as 'CV' | 'POLICE' | 'RESIDENCE' | 'KIMLIK' | 'DIPLOMA'}
-                          document={document}
-                          profileId={application.profile.id}
-                          onUpdate={handleDocumentUpdate}
-                          applicationStatus={application.applicationStatus}
-                        />
                       </div>
-                    </div>
-                  );
-                })}
+                    );
+                  });
+                })()}
               </div>
             </div>
           </div>
         </div>
       </main>
+
+      {/* Rider ID Modal */}
+      {showRiderIdModal && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6">
+            <div className="flex items-center gap-3 mb-6">
+              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-emerald-500 to-green-600 flex items-center justify-center">
+                <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V8a2 2 0 00-2-2h-5m-4 0V5a2 2 0 114 0v1m-4 0a2 2 0 104 0m-5 8a2 2 0 100-4 2 2 0 000 4zm0 0c1.306 0 2.417.835 2.83 2M9 14a3.001 3.001 0 00-2.83 2M15 11h3m-3 4h2" />
+                </svg>
+              </div>
+              <div>
+                <h3 className="text-lg font-bold text-gray-900">Evrakları Aktif Et</h3>
+                <p className="text-sm text-gray-500">Rider ID bilgisini girin</p>
+              </div>
+            </div>
+
+            <div className="mb-6">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Rider ID <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="text"
+                value={riderId}
+                onChange={(e) => setRiderId(e.target.value)}
+                placeholder="Örn: RD-12345"
+                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-all text-gray-900"
+                autoFocus
+              />
+              <p className="mt-2 text-xs text-gray-500">
+                Bu bilgi aday evraklarını aktif etmek için zorunludur.
+              </p>
+            </div>
+
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowRiderIdModal(false)}
+                className="flex-1 px-4 py-3 bg-gray-100 text-gray-700 rounded-xl font-medium hover:bg-gray-200 transition-colors"
+              >
+                İptal
+              </button>
+              <button
+                onClick={async () => {
+                  if (!riderId.trim()) {
+                    alert('Rider ID girilmesi zorunludur!');
+                    return;
+                  }
+
+                  setEnablingDocuments(true);
+                  try {
+                    // Önce candidate_info kaydı var mı kontrol et
+                    if (application.candidateInfo) {
+                      // Mevcut kaydı güncelle
+                      const { error } = await supabase
+                        .from('candidate_info')
+                        .update({ 
+                          documents_enabled: true,
+                          rider_id: riderId.trim()
+                        })
+                        .eq('profile_id', application.profile.id);
+
+                      if (error) throw error;
+                    } else {
+                      // Yeni kayıt oluştur
+                      const { error } = await supabase
+                        .from('candidate_info')
+                        .insert({ 
+                          profile_id: application.profile.id,
+                          documents_enabled: true,
+                          rider_id: riderId.trim()
+                        });
+
+                      if (error) throw error;
+                    }
+
+                    setShowRiderIdModal(false);
+                    // Sayfayı yenile
+                    window.location.reload();
+                  } catch (err: any) {
+                    console.error('Evrak aktifleştirme hatası:', err);
+                    alert('Hata: ' + err.message);
+                  } finally {
+                    setEnablingDocuments(false);
+                  }
+                }}
+                disabled={enablingDocuments || !riderId.trim()}
+                className="flex-1 px-4 py-3 bg-gradient-to-r from-emerald-500 to-green-600 text-white rounded-xl font-medium hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {enablingDocuments ? (
+                  <span className="flex items-center justify-center gap-2">
+                    <svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    İşleniyor...
+                  </span>
+                ) : (
+                  'Aktif Et'
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

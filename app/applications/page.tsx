@@ -31,7 +31,6 @@ interface Document {
 interface CandidateInfo {
   id: string;
   profile_id: string;
-  experience_years: number | null;
   phone: string | null;
   email: string | null;
 }
@@ -312,8 +311,7 @@ export default function ApplicationsManagementPage() {
           <div className="bg-white rounded-lg shadow-sm overflow-hidden">
             {/* Table Header */}
             <div className="bg-gray-100 border-b border-gray-200 px-6 py-4 grid grid-cols-12 gap-4 text-sm font-semibold text-gray-700">
-              <div className="col-span-3">ADAY BİLGİLERİ</div>
-              <div className="col-span-1">DENEYİM</div>
+              <div className="col-span-4">ADAY BİLGİLERİ</div>
               <div className="col-span-6">BELGE KONTROLLERİ</div>
               <div className="col-span-2">KARAR</div>
             </div>
@@ -384,20 +382,13 @@ function ApplicationRow({
   return (
     <div className="px-6 py-4 grid grid-cols-12 gap-4 items-center hover:bg-gray-50 transition-colors">
       {/* Aday Bilgileri */}
-      <div className="col-span-3">
+      <div className="col-span-4">
         <div className="font-semibold text-gray-900">{application.profile.full_name || 'İsimsiz'}</div>
         <div className="text-sm text-gray-600 mt-1">
           ID: {application.profile.id.slice(0, 8)}...
         </div>
         <div className="mt-2">
           {getStatusBadge(application.applicationStatus)}
-        </div>
-      </div>
-
-      {/* Deneyim */}
-      <div className="col-span-1">
-        <div className="text-gray-900 font-medium">
-          {application.candidateInfo?.experience_years || 0} Yıl
         </div>
       </div>
 

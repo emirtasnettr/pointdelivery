@@ -27,8 +27,6 @@ export default function EditProfilePage() {
     address: '',
     dateOfBirth: '',
     nationalId: '',
-    educationLevel: '',
-    experienceYears: '0',
     skills: [] as string[],
     currentSkill: '',
   });
@@ -81,8 +79,6 @@ export default function EditProfilePage() {
             address: candidateInfo.address || '',
             dateOfBirth: candidateInfo.date_of_birth || '',
             nationalId: candidateInfo.national_id || '',
-            educationLevel: candidateInfo.education_level || '',
-            experienceYears: candidateInfo.experience_years?.toString() || '0',
             skills: candidateInfo.skills || [],
           }));
         } else if (user.email) {
@@ -164,8 +160,6 @@ export default function EditProfilePage() {
           address: formData.address || null,
           date_of_birth: formData.dateOfBirth || null,
           national_id: formData.nationalId || null,
-          education_level: formData.educationLevel || null,
-          experience_years: parseInt(formData.experienceYears) || 0,
           skills: formData.skills,
         }, { onConflict: 'profile_id' });
 
@@ -322,49 +316,9 @@ export default function EditProfilePage() {
             </div>
           </div>
 
-          {/* Kariyer Bilgileri */}
+          {/* Beceriler */}
           <div className="bg-white rounded-2xl shadow-lg p-8">
-            <h2 className="text-xl font-bold text-gray-900 mb-6">Kariyer Bilgileri</h2>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-              <div>
-                <label htmlFor="educationLevel" className="block text-sm font-medium text-gray-700 mb-2">
-                  Eğitim Seviyesi
-                </label>
-                <select
-                  id="educationLevel"
-                  name="educationLevel"
-                  value={formData.educationLevel}
-                  onChange={handleChange}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                >
-                  <option value="">Seçiniz</option>
-                  <option value="İlkokul">İlkokul</option>
-                  <option value="Ortaokul">Ortaokul</option>
-                  <option value="Lise">Lise</option>
-                  <option value="Ön Lisans">Ön Lisans</option>
-                  <option value="Lisans">Lisans</option>
-                  <option value="Yüksek Lisans">Yüksek Lisans</option>
-                  <option value="Doktora">Doktora</option>
-                </select>
-              </div>
-
-              <div>
-                <label htmlFor="experienceYears" className="block text-sm font-medium text-gray-700 mb-2">
-                  Deneyim Yılı
-                </label>
-                <input
-                  id="experienceYears"
-                  name="experienceYears"
-                  type="number"
-                  min="0"
-                  value={formData.experienceYears}
-                  onChange={handleChange}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  placeholder="0"
-                />
-              </div>
-            </div>
+            <h2 className="text-xl font-bold text-gray-900 mb-6">Beceriler</h2>
 
             {/* Beceriler */}
             <div>

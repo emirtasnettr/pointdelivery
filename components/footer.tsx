@@ -28,28 +28,22 @@ export default function Footer() {
             <h4 className="text-gray-900 font-extrabold text-lg mb-6">Yasal Bilgilendirmeler</h4>
             <ul className="space-y-3">
               <li>
-                <a href="#" className="text-sm text-gray-600 hover:text-gray-900 transition-colors flex items-center gap-2 group">
+                <Link href="/legal/kvkk" className="text-sm text-gray-600 hover:text-gray-900 transition-colors flex items-center gap-2 group">
                   <span className="w-1.5 h-1.5 rounded-full bg-[#16B24B] opacity-0 group-hover:opacity-100 transition-opacity" />
                   KVKK Aydınlatma Metni
-                </a>
+                </Link>
               </li>
               <li>
-                <a href="#" className="text-sm text-gray-600 hover:text-gray-900 transition-colors flex items-center gap-2 group">
+                <Link href="/legal/gizlilik" className="text-sm text-gray-600 hover:text-gray-900 transition-colors flex items-center gap-2 group">
                   <span className="w-1.5 h-1.5 rounded-full bg-[#16B24B] opacity-0 group-hover:opacity-100 transition-opacity" />
                   Gizlilik Politikası
-                </a>
+                </Link>
               </li>
               <li>
-                <a href="#" className="text-sm text-gray-600 hover:text-gray-900 transition-colors flex items-center gap-2 group">
+                <Link href="/legal/cerezler" className="text-sm text-gray-600 hover:text-gray-900 transition-colors flex items-center gap-2 group">
                   <span className="w-1.5 h-1.5 rounded-full bg-[#16B24B] opacity-0 group-hover:opacity-100 transition-opacity" />
                   Çerez Politikası
-                </a>
-              </li>
-              <li>
-                <a href="#" className="text-sm text-gray-600 hover:text-gray-900 transition-colors flex items-center gap-2 group">
-                  <span className="w-1.5 h-1.5 rounded-full bg-[#16B24B] opacity-0 group-hover:opacity-100 transition-opacity" />
-                  Hesap Sildirme Talebi
-                </a>
+                </Link>
               </li>
             </ul>
           </div>
