@@ -41,8 +41,6 @@ export default function CandidateDashboardPage() {
     birthMonth: '',
     birthYear: '',
     nationalId: '',
-    educationLevel: '',
-    experienceYears: '0',
     skills: [] as string[],
     languages: [] as Array<{ name: string; level: string }>,
     currentSkill: '',

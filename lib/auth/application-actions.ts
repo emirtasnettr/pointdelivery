@@ -49,7 +49,7 @@ export async function submitApplicationForEvaluation(profileId: string) {
       .from('vehicle_info')
       .select('*')
       .eq('profile_id', profileId)
-      .maybeSingle();
+      .maybeSingle() as { data: { has_company?: boolean } | null };
 
     // Kayıt sırasında girilen bilgileri user_metadata'dan al (fallback)
     const userMetadata = user.user_metadata || {};

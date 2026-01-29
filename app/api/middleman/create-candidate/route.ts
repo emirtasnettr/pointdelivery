@@ -122,10 +122,12 @@ export async function POST(
         address: null,
         date_of_birth: null,
         national_id: null,
-        education_level: null,
-        experience_years: 0,
         skills: [],
         languages: [],
+        iban: null,
+        motorcycle_plate: null,
+        documents_enabled: false,
+        rider_id: null,
       },
       'profile_id'
     );

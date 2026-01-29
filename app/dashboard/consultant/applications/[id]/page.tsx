@@ -310,38 +310,48 @@ export default function ApplicationDetailPage() {
     }
   };
 
-  const getDocumentTypeLabel = (type: DocumentType) => {
-    switch (type) {
-      case 'CV':
-        return 'CV';
-      case 'POLICE':
-        return 'Sabıka Kaydı';
-      case 'RESIDENCE':
-        return 'İkametgah';
-      case 'KIMLIK':
-        return 'Kimlik Belgesi';
-      case 'DIPLOMA':
-        return 'Diploma';
-      default:
-        return type;
-    }
+  const getDocumentTypeLabel = (type: string) => {
+    const labels: Record<string, string> = {
+      'MUVAFAKATNAME': 'Muvafakatname',
+      'KIMLIK_ON': 'Kimlik Ön Yüz',
+      'SOZLESME_1': 'Sözleşme 1',
+      'SOZLESME_2': 'Sözleşme 2',
+      'SOZLESME_3': 'Sözleşme 3',
+      'SOZLESME_4': 'Sözleşme 4',
+      'SOZLESME_5': 'Sözleşme 5',
+      'SOZLESME_6': 'Sözleşme 6',
+      'SOZLESME_7': 'Sözleşme 7',
+      'ISG_EVRAKLARI_1': 'İSG Evrakları 1',
+      'ISG_EVRAKLARI_2': 'İSG Evrakları 2',
+      'ISG_EVRAKLARI_3': 'İSG Evrakları 3',
+      'ISG_EVRAKLARI_4': 'İSG Evrakları 4',
+      'ISG_EVRAKLARI_5': 'İSG Evrakları 5',
+      'RUHSAT': 'Ruhsat',
+      'ADLI_SICIL': 'Adli Sicil',
+      'TASIT_KART_DEKONT': 'Taşıt Kart Dekont',
+      'IKAMETGAH': 'İkametgah',
+      'EHLIYETLI_SELFIE': 'Ehliyetli Selfie',
+      'EKIPMANLI_FOTO': 'Ekipmanlı Fotoğraf',
+      'VERGI_LEVHASI': 'Vergi Levhası',
+      'P1_BELGESI': 'P1 Belgesi',
+      'BIMASRAF_ENTEGRASYONU': 'Bimasraf Entegrasyonu',
+    };
+    return labels[type] || type;
   };
 
-  const getDocumentTypeIcon = (type: DocumentType) => {
-    switch (type) {
-      case 'CV':
-        return '📄';
-      case 'POLICE':
-        return '🔒';
-      case 'RESIDENCE':
-        return '🏠';
-      case 'KIMLIK':
-        return '🆔';
-      case 'DIPLOMA':
-        return '🎓';
-      default:
-        return '📋';
-    }
+  const getDocumentTypeIcon = (type: string) => {
+    const icons: Record<string, string> = {
+      'MUVAFAKATNAME': '📋',
+      'KIMLIK_ON': '🆔',
+      'RUHSAT': '📜',
+      'ADLI_SICIL': '🔒',
+      'IKAMETGAH': '🏠',
+      'EHLIYETLI_SELFIE': '🤳',
+      'EKIPMANLI_FOTO': '📸',
+      'VERGI_LEVHASI': '📊',
+      'P1_BELGESI': '📄',
+    };
+    return icons[type] || '📋';
   };
 
   if (loading) {
@@ -376,7 +386,7 @@ export default function ApplicationDetailPage() {
     );
   }
 
-  const documentTypes: DocumentType[] = ['CV', 'POLICE', 'RESIDENCE', 'KIMLIK', 'DIPLOMA'];
+  // Belge türleri artık dinamik olarak gelen belgelerden alınıyor
 
   return (
     <div className="min-h-screen bg-white text-gray-900">
