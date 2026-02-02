@@ -14,7 +14,7 @@ interface SubmitApplicationButtonProps {
   profileId: string;
   applicationStatus: string | null;
   candidateInfo: any;
-  documents: Array<{ document_type: string }>;
+  documents: Array<{ document_type: string; status?: string | null }>;
   requiredDocumentTypes: string[];
   documentsEnabled?: boolean; // Evraklar aktif mi?
   onSuccess?: () => void;
@@ -39,74 +39,98 @@ export default function SubmitApplicationButton({
   useEffect(() => {
     const missing: string[] = [];
 
-    // Zorunlu alanlar kontrolü - Evraklar aktif edildiyse tüm alanlar zorunlu
-    if (documentsEnabled) {
-      if (!candidateInfo) {
-        missing.push('Aday bilgileri');
-      } else {
-        if (!candidateInfo.phone || candidateInfo.phone.trim() === '') {
-          missing.push('Telefon numarası');
-        }
-        if (!candidateInfo.national_id || candidateInfo.national_id.trim() === '') {
-          missing.push('TC Kimlik No');
-        }
-        if (!candidateInfo.date_of_birth) {
-          missing.push('Doğum tarihi');
-        }
-        if (!candidateInfo.address || candidateInfo.address.trim() === '') {
-          missing.push('Adres');
-        }
-      }
-    }
-    // Evraklar aktif değilse sadece telefon zorunlu
-    else {
-      if (!candidateInfo?.phone || candidateInfo.phone.trim() === '') {
+    // Temel profil bilgileri kontrolü - Her zaman zorunlu
+    if (!candidateInfo) {
+      missing.push('Aday bilgileri eksik');
+    } else {
+      // Telefon numarası - Her zaman zorunlu
+      if (!candidateInfo.phone || candidateInfo.phone.trim() === '') {
         missing.push('Telefon numarası');
+      }
+      
+      // TC Kimlik No - Her zaman zorunlu
+      if (!candidateInfo.national_id || candidateInfo.national_id.trim() === '') {
+        missing.push('TC Kimlik No');
+      }
+      
+      // Doğum Tarihi - Her zaman zorunlu
+      if (!candidateInfo.date_of_birth) {
+        missing.push('Doğum Tarihi');
+      }
+      
+      // İl - Her zaman zorunlu
+      if (!candidateInfo.city || candidateInfo.city.trim() === '') {
+        missing.push('İl');
+      }
+      
+      // İlçe - Her zaman zorunlu
+      if (!candidateInfo.district || candidateInfo.district.trim() === '') {
+        missing.push('İlçe');
+      }
+      
+      // Adres - Her zaman zorunlu
+      if (!candidateInfo.address || candidateInfo.address.trim() === '') {
+        missing.push('Adres');
+      }
+      
+      // IBAN - Her zaman zorunlu
+      if (!candidateInfo.iban || candidateInfo.iban.trim() === '') {
+        missing.push('IBAN');
       }
     }
 
-    // Belgeler kontrolü
+    // Belge etiketleri
+    const docLabels: Record<string, string> = {
+      // Şirketi olmayanlar için
+      MUVAFAKATNAME: 'Muvafakatname',
+      KIMLIK_ON: 'Kimlik Ön Yüzü',
+      // Sözleşme sayfaları
+      SOZLESME_1: 'Sözleşme 1. Sayfa',
+      SOZLESME_2: 'Sözleşme 2. Sayfa',
+      SOZLESME_3: 'Sözleşme 3. Sayfa',
+      SOZLESME_4: 'Sözleşme 4. Sayfa',
+      SOZLESME_5: 'Sözleşme 5. Sayfa',
+      SOZLESME_6: 'Sözleşme 6. Sayfa',
+      SOZLESME_7: 'Sözleşme 7. Sayfa',
+      // İSG Evrakları sayfaları
+      ISG_EVRAKLARI_1: 'İSG Evrakları 1. Sayfa',
+      ISG_EVRAKLARI_2: 'İSG Evrakları 2. Sayfa',
+      ISG_EVRAKLARI_3: 'İSG Evrakları 3. Sayfa',
+      ISG_EVRAKLARI_4: 'İSG Evrakları 4. Sayfa',
+      ISG_EVRAKLARI_5: 'İSG Evrakları 5. Sayfa',
+      RUHSAT: 'Ruhsat Fotoğrafı',
+      ADLI_SICIL: 'Adli Sicil Kaydı',
+      TASIT_KART_DEKONT: 'Taşıt Kart Ücreti Dekont',
+      IKAMETGAH: 'İkametgah',
+      EHLIYETLI_SELFIE: 'Ehliyetli Selfie',
+      EKIPMANLI_FOTO: 'Ekipmanlı Fotoğraf',
+      // Şirketi olanlar için
+      VERGI_LEVHASI: 'Vergi Levhası',
+      P1_BELGESI: 'P1 Belgesi',
+      BIMASRAF_ENTEGRASYONU: 'BiMasraf Entegrasyonu',
+      // Eski türler (geriye uyumluluk)
+      EHLIYET: 'Ehliyet',
+      KIMLIK: 'Kimlik Belgesi',
+      RESIDENCE: 'İkametgah',
+      POLICE: 'Sabıka Kaydı',
+      CV: 'CV',
+      DIPLOMA: 'Diploma',
+    };
+
+    // Belgeler kontrolü - eksik belgeler
     const uploadedDocumentTypes = documents.map((doc) => doc.document_type);
     for (const docType of requiredDocumentTypes) {
       if (!uploadedDocumentTypes.includes(docType)) {
-        const docLabels: Record<string, string> = {
-          // Şirketi olmayanlar için
-          MUVAFAKATNAME: 'Muvafakatname',
-          KIMLIK_ON: 'Kimlik Ön Yüzü',
-          // Sözleşme sayfaları
-          SOZLESME_1: 'Sözleşme 1. Sayfa',
-          SOZLESME_2: 'Sözleşme 2. Sayfa',
-          SOZLESME_3: 'Sözleşme 3. Sayfa',
-          SOZLESME_4: 'Sözleşme 4. Sayfa',
-          SOZLESME_5: 'Sözleşme 5. Sayfa',
-          SOZLESME_6: 'Sözleşme 6. Sayfa',
-          SOZLESME_7: 'Sözleşme 7. Sayfa',
-          // İSG Evrakları sayfaları
-          ISG_EVRAKLARI_1: 'İSG Evrakları 1. Sayfa',
-          ISG_EVRAKLARI_2: 'İSG Evrakları 2. Sayfa',
-          ISG_EVRAKLARI_3: 'İSG Evrakları 3. Sayfa',
-          ISG_EVRAKLARI_4: 'İSG Evrakları 4. Sayfa',
-          ISG_EVRAKLARI_5: 'İSG Evrakları 5. Sayfa',
-          RUHSAT: 'Ruhsat Fotoğrafı',
-          ADLI_SICIL: 'Adli Sicil Kaydı',
-          TASIT_KART_DEKONT: 'Taşıt Kart Ücreti Dekont',
-          IKAMETGAH: 'İkametgah',
-          EHLIYETLI_SELFIE: 'Ehliyetli Selfie',
-          EKIPMANLI_FOTO: 'Ekipmanlı Fotoğraf',
-          // Şirketi olanlar için
-          VERGI_LEVHASI: 'Vergi Levhası',
-          P1_BELGESI: 'P1 Belgesi',
-          BIMASRAF_ENTEGRASYONU: 'BiMasraf Entegrasyonu',
-          // Eski türler (geriye uyumluluk)
-          EHLIYET: 'Ehliyet',
-          KIMLIK: 'Kimlik Belgesi',
-          RESIDENCE: 'İkametgah',
-          POLICE: 'Sabıka Kaydı',
-          CV: 'CV',
-          DIPLOMA: 'Diploma',
-        };
         missing.push(docLabels[docType] || docType);
       }
+    }
+
+    // REJECTED (iptal edilmiş) belgeler kontrolü
+    // İptal edilen belgeler yeniden yüklenmedikçe başvuru gönderilemez
+    const rejectedDocuments = documents.filter((doc) => doc.status === 'REJECTED');
+    for (const doc of rejectedDocuments) {
+      const label = docLabels[doc.document_type] || doc.document_type;
+      missing.push(`${label} (İptal Edildi - Yeniden Yükleyin)`);
     }
 
     setMissingItems(missing);

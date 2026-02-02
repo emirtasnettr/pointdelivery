@@ -239,10 +239,34 @@ export default function AdminDashboardPage() {
         {/* Header */}
         <header className="sticky top-0 z-50 border-b border-gray-100 bg-white/90 backdrop-blur">
           <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
-            <Link href="/dashboard/admin" className="inline-flex items-center">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src="/pointdlogo.webp" alt="Point Delivery" className="w-auto" style={{ height: '42px', width: 'auto' }} />
-            </Link>
+            <div className="flex items-center gap-8">
+              <Link href="/dashboard/admin" className="inline-flex items-center">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src="/pointdlogo.webp" alt="Point Delivery" className="w-auto" style={{ height: '42px', width: 'auto' }} />
+              </Link>
+              
+              {/* Navigation Links */}
+              <nav className="hidden md:flex items-center gap-1">
+                <Link
+                  href="/dashboard/admin"
+                  className="px-3 py-2 text-sm font-medium text-gray-700 hover:text-[#16B24B] hover:bg-[#16B24B]/5 rounded-lg transition-colors"
+                >
+                  Anasayfa
+                </Link>
+                <Link
+                  href="/dashboard/admin/users"
+                  className="px-3 py-2 text-sm font-medium text-gray-700 hover:text-[#16B24B] hover:bg-[#16B24B]/5 rounded-lg transition-colors"
+                >
+                  Kullanıcılar
+                </Link>
+                <Link
+                  href="/dashboard/admin/consent-logs"
+                  className="px-3 py-2 text-sm font-medium text-gray-700 hover:text-[#16B24B] hover:bg-[#16B24B]/5 rounded-lg transition-colors"
+                >
+                  KVKK Onayları
+                </Link>
+              </nav>
+            </div>
 
             {/* User Profile Dropdown */}
             <div className="relative" ref={dropdownRef}>

@@ -137,18 +137,9 @@ export default function DocumentControl({
 
       if (updateError) throw updateError;
 
-      // Başvuru durumunu otomatik olarak UPDATE_REQUIRED yap
-      const { error: statusError } = await supabase
-        .from('profiles')
-        .update({
-          application_status: 'UPDATE_REQUIRED',
-          updated_at: new Date().toISOString(),
-        })
-        .eq('id', profileId);
-
-      if (statusError) {
-        console.error('Başvuru durumu güncellenemedi:', statusError);
-      }
+      // NOT: Başvuru durumu artık otomatik olarak UPDATE_REQUIRED yapılmıyor.
+      // Danışman tüm belgeleri inceledikten sonra manuel olarak "Güncelle" butonuna basmalı.
+      // Bu sayede her belge bağımsız olarak onaylanabilir veya reddedilebilir.
 
       setShowRejectModal(false);
       onUpdate();

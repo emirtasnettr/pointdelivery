@@ -111,13 +111,13 @@ function MultiPageDocumentCard({
 
   const overallStatus = getOverallStatus();
 
-  // UPDATE_REQUIRED durumunda sadece REJECTED sayfalar varsa düzenlenebilir
-  // NEW_APPLICATION durumunda tüm sayfalar düzenlenebilir
-  const canEditThisDocument = applicationStatus === 'NEW_APPLICATION' 
-    ? canEdit 
-    : applicationStatus === 'UPDATE_REQUIRED' 
-      ? anyRejected
-      : false;
+  // NEW_APPLICATION veya UPDATE_REQUIRED durumunda:
+  // - Tüm sayfalar APPROVED ise düzenlenemez
+  // - En az bir sayfa APPROVED değilse düzenlenebilir
+  // Aday "Başvurumu Değerlendirmeye Gönder" demeden önce istediği değişikliği yapabilmeli
+  const canEditThisDocument = (applicationStatus === 'NEW_APPLICATION' || applicationStatus === 'UPDATE_REQUIRED')
+    ? canEdit && !allApproved
+    : false;
 
   return (
     <div className={`rounded-xl border p-4 shadow-sm ${getCardBackgroundColor(overallStatus)}`}>
@@ -232,13 +232,13 @@ function DocumentCard({
     }
   };
 
-  // UPDATE_REQUIRED durumunda sadece REJECTED belgeler düzenlenebilir
-  // NEW_APPLICATION durumunda tüm belgeler düzenlenebilir
-  const canEditThisDocument = applicationStatus === 'NEW_APPLICATION' 
-    ? canEdit 
-    : applicationStatus === 'UPDATE_REQUIRED' 
-      ? document?.status === 'REJECTED'
-      : false;
+  // NEW_APPLICATION veya UPDATE_REQUIRED durumunda:
+  // - APPROVED belgeler düzenlenemez (Consultant onaylamış)
+  // - Diğer tüm belgeler (DRAFT, PENDING, REJECTED, null) düzenlenebilir
+  // Aday "Başvurumu Değerlendirmeye Gönder" demeden önce istediği değişikliği yapabilmeli
+  const canEditThisDocument = (applicationStatus === 'NEW_APPLICATION' || applicationStatus === 'UPDATE_REQUIRED')
+    ? canEdit && document?.status !== 'APPROVED'
+    : false;
 
 
   return (
@@ -745,9 +745,9 @@ export default function CandidateProfilePage() {
       <div className="min-h-screen bg-gradient-to-br from-blue-50/70 via-sky-50/60 to-indigo-50/70 flex items-center justify-center">
         <div className="text-center">
           <div className="relative">
-            <div className="w-16 h-16 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin mx-auto mb-4"></div>
+            <div className="w-16 h-16 border-4 border-[#16B24B]/30 border-t-[#16B24B] rounded-full animate-spin mx-auto mb-4"></div>
             <div className="absolute inset-0 flex items-center justify-center">
-              <div className="w-8 h-8 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-full"></div>
+              <div className="w-8 h-8 bg-[#16B24B] rounded-full"></div>
             </div>
           </div>
           <p className="text-gray-600 font-medium mt-4">Yükleniyor...</p>
@@ -1495,47 +1495,6 @@ export default function CandidateProfilePage() {
                   </svg>
                 </button>
               )}
-            </div>
-          </div>
-
-          <h3 className="text-base font-semibold text-gray-900 mb-4 pb-2 border-b border-gray-200 mt-6">Banka Bilgileri</h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-5">
-            {/* Alıcı Adı Soyadı - Değiştirilemez */}
-            <div className="flex items-start gap-3 p-3 rounded-lg bg-gray-50/50 hover:bg-gray-50 transition-colors">
-              <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${profile?.full_name ? 'bg-[#16B24B]' : 'bg-red-100'}`}>
-                <svg className={`w-4 h-4 ${profile?.full_name ? 'text-white' : 'text-red-600'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                </svg>
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-xs font-medium text-gray-500 mb-0.5">Alıcı Adı Soyadı</p>
-                <p className="text-sm font-medium text-gray-900">{profile?.full_name || '-'}</p>
-                <p className="text-xs text-gray-400 mt-0.5">Değiştirilemez</p>
-              </div>
-              <div className="flex-shrink-0">
-                <svg className="w-4 h-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-                </svg>
-              </div>
-            </div>
-
-            {/* Banka Adı - Sabit Garanti Bankası */}
-            <div className="flex items-start gap-3 p-3 rounded-lg bg-gray-50/50 hover:bg-gray-50 transition-colors">
-              <div className="w-8 h-8 rounded-lg bg-[#16B24B] flex items-center justify-center flex-shrink-0">
-                <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-                </svg>
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-xs font-medium text-gray-500 mb-0.5">Banka Adı</p>
-                <p className="text-sm font-medium text-gray-900">Garanti Bankası</p>
-                <p className="text-xs text-gray-400 mt-0.5">Değiştirilemez</p>
-              </div>
-              <div className="flex-shrink-0">
-                <svg className="w-4 h-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-                </svg>
-              </div>
             </div>
 
             {/* IBAN */}

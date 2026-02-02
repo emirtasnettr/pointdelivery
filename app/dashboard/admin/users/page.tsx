@@ -341,17 +341,33 @@ export default function AdminUsersPage() {
         {/* Header */}
         <header className="sticky top-0 z-50 border-b border-gray-100 bg-white/90 backdrop-blur">
           <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-8">
               <Link href="/dashboard/admin" className="inline-flex items-center">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img src="/pointdlogo.webp" alt="Point Delivery" className="w-auto" style={{ height: '42px', width: 'auto' }} />
               </Link>
-              <Link href="/dashboard/admin" className="rounded-lg px-3 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50 flex items-center gap-1">
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-                </svg>
-                Geri
-              </Link>
+              
+              {/* Navigation Links */}
+              <nav className="hidden md:flex items-center gap-1">
+                <Link
+                  href="/dashboard/admin"
+                  className="px-3 py-2 text-sm font-medium text-gray-700 hover:text-[#16B24B] hover:bg-[#16B24B]/5 rounded-lg transition-colors"
+                >
+                  Anasayfa
+                </Link>
+                <Link
+                  href="/dashboard/admin/users"
+                  className="px-3 py-2 text-sm font-medium text-[#16B24B] bg-[#16B24B]/5 rounded-lg"
+                >
+                  Kullanıcılar
+                </Link>
+                <Link
+                  href="/dashboard/admin/consent-logs"
+                  className="px-3 py-2 text-sm font-medium text-gray-700 hover:text-[#16B24B] hover:bg-[#16B24B]/5 rounded-lg transition-colors"
+                >
+                  KVKK Onayları
+                </Link>
+              </nav>
             </div>
 
             {/* User Profile Dropdown */}

@@ -255,9 +255,9 @@ export default function MiddlemanCandidateDetailPage() {
       <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-blue-50/30 flex items-center justify-center">
         <div className="text-center">
           <div className="relative">
-            <div className="w-16 h-16 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin mx-auto mb-4"></div>
+            <div className="w-16 h-16 border-4 border-[#16B24B]/30 border-t-[#16B24B] rounded-full animate-spin mx-auto mb-4"></div>
             <div className="absolute inset-0 flex items-center justify-center">
-              <div className="w-8 h-8 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-full"></div>
+              <div className="w-8 h-8 bg-[#16B24B] rounded-full"></div>
             </div>
           </div>
           <p className="text-gray-600 font-medium mt-4">Yükleniyor...</p>

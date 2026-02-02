@@ -267,6 +267,37 @@ export default function RegisterPage() {
           district: formData.district,
         });
 
+        // KVKK ve diğer onayları yasal delil olarak kaydet
+        try {
+          const consentResponse = await fetch('/api/consent/log', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              user_id: data.user.id,
+              user_email: formData.email,
+              consents: [
+                {
+                  type: 'KVKK',
+                  given: formData.kvkkApproved,
+                },
+                {
+                  type: 'SMS_EMAIL_MARKETING',
+                  given: formData.smsEmailConsent,
+                },
+              ],
+            }),
+          });
+          
+          if (!consentResponse.ok) {
+            console.warn('Consent log kaydedilemedi, ancak kayıt başarılı.');
+          }
+        } catch (consentError) {
+          // Consent log hatası kayıt işlemini engellememeli
+          console.warn('Consent log hatası:', consentError);
+        }
+
         // Kayıt başarılı - başarı ekranını göster
         setRegistrationSuccess(true);
         setLoading(false);
