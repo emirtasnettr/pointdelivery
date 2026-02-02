@@ -107,7 +107,7 @@ export default function ConsentLogsPage() {
       setProfile(profileData);
       
       const { data, error } = await supabase
-        .from('consent_logs')
+        .from('consent_logs' as any)
         .select('*')
         .order('created_at', { ascending: false });
 

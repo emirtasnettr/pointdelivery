@@ -67,10 +67,10 @@ export async function POST(request: NextRequest) {
       },
     }));
 
-    // Veritabanına kaydet
+    // Veritabanına kaydet (consent_logs tablosu henüz types'ta tanımlı değil)
     const { data, error } = await supabase
-      .from('consent_logs')
-      .insert(consentLogs)
+      .from('consent_logs' as any)
+      .insert(consentLogs as any)
       .select();
 
     if (error) {
@@ -123,7 +123,7 @@ export async function GET(request: NextRequest) {
     }
 
     const { data: consents, error } = await supabase
-      .from('consent_logs')
+      .from('consent_logs' as any)
       .select('*')
       .eq('user_id', user.id)
       .order('created_at', { ascending: false });
